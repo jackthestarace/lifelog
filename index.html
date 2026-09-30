@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Life Log">
+<meta name="theme-color" content="#12171D">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Life Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E8EBEE; --surface:#F6F7F8; --ink:#1B2430; --muted:#5E6875; --line:#C9CFD6;
+  --gold:#A8801F; --good:#2E7656; --bad:#A9433A; --sel-ink:#FFFFFF;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12171D; --surface:#1B222B; --ink:#E4E8EC; --muted:#98A2AE; --line:#2E3742;
+    --gold:#D6B04E; --good:#5DB58C; --bad:#E07A6F; --sel-ink:#12171D;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12171D; --surface:#1B222B; --ink:#E4E8EC; --muted:#98A2AE; --line:#2E3742;
+  --gold:#D6B04E; --good:#5DB58C; --bad:#E07A6F; --sel-ink:#12171D;
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{min-height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Noto Sans TC","PingFang HK","Heiti TC",system-ui,sans-serif;
+  font-size:16px;line-height:1.5;-webkit-tap-highlight-color:transparent;font-variant-numeric:tabular-nums}
+.wrap{max-width:560px;margin:0 auto;padding:16px 16px 150px}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{font-family:"Noto Serif TC",serif;font-weight:900;font-size:30px;line-height:1.1;margin:0}
+.streak{text-align:right;color:var(--muted);font-size:13px}
+.streak b{display:block;font-size:26px;color:var(--gold);font-weight:900;line-height:1}
+.datebar{display:flex;align-items:center;gap:10px;margin:12px 0 6px;color:var(--muted);font-size:14px}
+input[type=date],input[type=url],input[type=password],input[type=text]{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+section.dim{display:grid;grid-template-columns:48px 1fr;gap:0 12px;padding:18px 0;border-top:1px solid var(--line)}
+.glyph{font-family:"Noto Serif TC",serif;font-weight:900;font-size:40px;line-height:1;color:var(--gold);padding-top:2px}
+.dimname{font-weight:700;font-size:15px;margin:0 0 8px;color:var(--muted)}
+.field{padding:10px 0}
+.field+.field{border-top:1px dashed var(--line)}
+.label{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}
+.label span:first-child{font-weight:500}
+.tag{font-size:11px;color:var(--muted);white-space:nowrap}
+.tag.out{color:var(--gold)}
+.stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--surface);width:max-content}
+.stepper button{width:48px;height:44px;border:0;background:transparent;color:var(--ink);font-size:22px;cursor:pointer}
+.stepper output{min-width:64px;text-align:center;font-weight:700;font-size:18px}
+.stepper small{font-weight:400;font-size:12px;color:var(--muted);margin-left:2px}
+.scale{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
+.scale button,.yn button{height:40px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;font:inherit;font-weight:500;cursor:pointer}
+.scale button[aria-pressed="true"],.yn button[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:var(--sel-ink);font-weight:700}
+.yn{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:240px}
+.ends{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px}
+input[type=time]{font:inherit;font-size:18px;font-weight:700;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-height:44px}
+textarea{width:100%;min-height:72px;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px}
+.hint{font-size:12px;color:var(--bad);margin-top:6px}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+h2{font-family:"Noto Serif TC",serif;font-weight:900;font-size:22px;margin:28px 0 10px}
+h3{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:700}
+.row{display:grid;grid-template-columns:92px repeat(4,1fr);align-items:center;padding:10px 0;border:0;border-bottom:1px solid var(--line);font-size:14px;cursor:pointer;background:none;width:100%;color:var(--ink);font-family:inherit;text-align:left}
+.row.head{cursor:default;color:var(--muted);font-size:12px}
+.row span:not(:first-child){text-align:center}
+.empty{color:var(--muted);font-size:14px;padding:14px 0}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.ghost{min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;cursor:pointer}
+.primary{min-height:48px;padding:0 22px;border:0;border-radius:12px;background:var(--ink);color:var(--bg);font:inherit;font-weight:700;font-size:16px;cursor:pointer}
+.primary:disabled,.ghost:disabled{opacity:.5}
+.muted{color:var(--muted);font-size:13px}
+.formrow{display:grid;gap:6px;margin:12px 0}
+.formrow label{font-size:14px;font-weight:500}
+
+/* progress */
+.index{display:flex;align-items:baseline;gap:12px;margin:8px 0 2px}
+.index b{font-family:"Noto Serif TC",serif;font-size:64px;line-height:1;font-weight:900;color:var(--gold)}
+.dimbar{display:grid;grid-template-columns:36px 1fr 48px;align-items:center;gap:10px;padding:8px 0}
+.dimbar .g{font-family:"Noto Serif TC",serif;font-weight:900;font-size:24px;color:var(--gold)}
+.track{height:10px;background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.fill{height:100%;background:var(--gold)}
+.fill.low{background:var(--bad)}
+.dimbar .v{text-align:right;font-weight:700}
+.dd{font-size:12px;color:var(--bad);grid-column:2 / 4}
+.alert{padding:10px 12px;border-left:3px solid var(--bad);background:var(--surface);margin:8px 0;font-size:14px}
+.corr{padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.corr b{font-weight:700}
+.stage{padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.spark{width:100%;height:60px;display:block;margin-top:8px}
+
+/* tabs + bottom bar */
+.bottom{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
+.submit{max-width:560px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:10px 16px}
+.submit .missing{font-size:13px;color:var(--muted);flex:1}
+nav{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr)}
+nav button{height:52px;border:0;background:none;color:var(--muted);font:inherit;font-size:14px;cursor:pointer}
+nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inset 0 2px 0 var(--gold)}
+[hidden]{display:none!important}
+.zone{margin-top:10px;padding:10px 12px;border-left:3px solid var(--gold);background:var(--surface);font-size:13px;color:var(--muted)}
+.zone b{display:block;color:var(--ink);font-size:14px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{min-height:36px;padding:0 12px;border:1px solid var(--line);border-radius:18px;background:var(--surface);color:var(--ink);font:inherit;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:var(--sel-ink);font-weight:700}
+.zonegrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.zonegrid div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center;font-size:12px;color:var(--muted)}
+.zonegrid b{display:block;font-size:20px;color:var(--ink)}
+.stats{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px;font-size:13px;color:var(--muted)}
+.stats b{display:block;font-size:20px;color:var(--ink)}
+.remark{padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.remark .muted{display:block}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(140px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9;max-width:90vw}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 紀錄 -->
+  <main id="tab-log">
+    <header>
+      <h1>今日紀錄</h1>
+      <div class="streak"><b id="streak">0</b>連續日數</div>
+    </header>
+    <div class="datebar">
+      <label for="date">日期</label>
+      <input type="date" id="date">
+    </div>
+    <form id="form" onsubmit="return false"></form>
+    <section class="dim">
+      <div class="glyph" aria-hidden="true">記</div>
+      <div>
+        <p class="dimname">Remark（可選）</p>
+        <div class="field">
+          <div class="label"><span id="l_note">今日有趣、特別、值得記低嘅事</span><span class="tag">可選</span></div>
+          <textarea id="note" aria-labelledby="l_note" placeholder="例如：同人傾到一個新 idea；寫 code 寫到唔覺天黑"></textarea>
+        </div>
+        <div class="field">
+          <div class="label"><span id="l_tags">標籤</span><span class="tag">會影響階段同警報</span></div>
+          <div class="chips" id="tags" role="group" aria-labelledby="l_tags"></div>
+        </div>
+      </div>
+    </section>
+    <h2>過去紀錄</h2>
+    <div id="history"></div>
+  </main>
+
+  <!-- 進度 -->
+  <main id="tab-progress" hidden>
+    <header><h1>進度</h1></header>
+    <div id="results"></div>
+  </main>
+
+  <!-- 同步 -->
+  <main id="tab-sync" hidden>
+    <header><h1>同步</h1></header>
+    <p class="muted" id="syncstatus"></p>
+
+    <h2>直接同步到 local 機</h2>
+    <p class="muted">手機同 laptop 都開咗 Tailscale、laptop 行緊 server 先用得。會上載所有紀錄，再攞返最新分析結果。</p>
+    <div class="formrow"><label for="server">Server 地址</label><input type="url" id="server" placeholder="https://kl.xxxx.ts.net" autocomplete="off"></div>
+    <div class="formrow"><label for="token">同步密碼</label><input type="password" id="token" autocomplete="off"></div>
+    <div class="btns">
+      <button class="primary" id="syncnow" type="button">立即同步</button>
+      <button class="ghost" id="testconn" type="button">測試連線</button>
+    </div>
+
+    <h2>用檔案同步</h2>
+    <p class="muted">唔使設定網絡。匯出嘅檔案存入 iCloud Drive 或 OneDrive 嘅 LifeLog 資料夾，laptop 處理完會喺同一個資料夾放一個結果檔，再喺度匯入。</p>
+    <div class="btns">
+      <button class="ghost" id="export" type="button">匯出紀錄</button>
+      <button class="ghost" id="importbtn" type="button">匯入結果或備份</button>
+      <input type="file" id="importfile" accept=".json,application/json" hidden>
+    </div>
+
+    <h2>儲存</h2>
+    <p class="muted" id="persist"></p>
+  </main>
+</div>
+
+<div class="bottom">
+  <div class="submit" id="submitbar">
+    <div class="missing" id="missing"></div>
+    <button class="primary" id="save" type="button">提交紀錄</button>
+  </div>
+  <nav>
+    <button type="button" data-tab="log" aria-current="page">紀錄</button>
+    <button type="button" data-tab="progress">進度</button>
+    <button type="button" data-tab="sync">同步</button>
+  </nav>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ================= 欄位定義（改呢度就改到個 form） ================= */
+const TAGS=["突破","心流","面對痛苦","逃避","新人","深度對話","靈感","好玩","攰"];
+function zoneOf(c,s){ if(c==null||s==null) return null; if(c>=5&&s>=5&&Math.abs(c-s)<=2) return "flow"; if(c<=4&&s<=4) return "apathy"; return c>s?"anxiety":"boredom"; }
+const ZONES={flow:["心流區","挑戰同能力都高，而且差唔多。保持，下次加少少難度。"],anxiety:["焦慮區","挑戰高過能力。將問題拆細，或者先補一樣技能。"],boredom:["悶區","能力高過挑戰。加難度、加 deadline，或者搵更大嘅問題。"],apathy:["冷漠區","挑戰同能力都低。加新刺激，或者搵人一齊做。"]};
+const DIMS = {
+  flow:{glyph:"流",name:"心流（北極星）"},
+  body:{glyph:"身",name:"身體"}, wealth:{glyph:"財",name:"財富"}, rel:{glyph:"關",name:"關係"},
+  craft:{glyph:"創",name:"事業／創造"}, mind:{glyph:"心",name:"精神"}
+};
+const FIELDS = [
+  {dim:"flow",key:"flow_min",label:"今日完全投入、唔覺時間過嘅時間",unit:"分鐘",type:"step",step:15,kind:"star"},
+  {dim:"flow",key:"challenge",label:"今日最大挑戰嘅難度",type:"scale",kind:"state",lo:"好易",hi:"好難"},
+  {dim:"flow",key:"skill",label:"你嘅能力應付到幾多",type:"scale",kind:"state",lo:"完全唔夠",hi:"綽綽有餘"},
+  {dim:"flow",key:"problems_solved",label:"解決咗嘅問題",type:"step",step:1,kind:"in"},
+  {dim:"flow",key:"problems_found",label:"新發現嘅問題（睇到更多問題 = 維度提高）",type:"step",step:1,kind:"in"},
+  {dim:"body",key:"bedtime",label:"琴晚上床時間",type:"time",kind:"in"},
+  {dim:"body",key:"exercise_min",label:"運動",unit:"分鐘",type:"step",step:15,kind:"in"},
+  {dim:"body",key:"energy",label:"朝早精力",type:"scale",kind:"out",lo:"好攰",hi:"精神"},
+  {dim:"body",key:"crash",label:"下晝有冇攰到做唔到嘢",type:"yn",kind:"out",rev:true},
+  {dim:"wealth",key:"trades",label:"今日落單數",type:"step",step:1,kind:"in"},
+  {dim:"wealth",key:"checklist_trades",label:"其中有跟 checklist",type:"step",step:1,kind:"in"},
+  {dim:"wealth",key:"screen_min",label:"盯盤時間",unit:"分鐘",type:"step",step:15,kind:"in",rev:true},
+  {dim:"rel",key:"quality_meet",label:"有質素見面（≥30 分鐘）",type:"step",step:1,kind:"in"},
+  {dim:"rel",key:"initiate",label:"主動發起（約人／follow-up）",type:"step",step:1,kind:"in"},
+  {dim:"craft",key:"deep_blocks",label:"Deep work（≥45 分鐘 block）",type:"step",step:1,kind:"in"},
+  {dim:"craft",key:"mit_done",label:"最重要一件事完成",type:"yn",kind:"in"},
+  {dim:"mind",key:"pain_tasks",label:"完成痛感 ≥7 嘅任務",type:"step",step:1,kind:"in"},
+  {dim:"mind",key:"avoid_signals",label:"逃避訊號",type:"step",step:1,kind:"in",rev:true},
+  {dim:"mind",key:"meaning",label:"意義感",type:"scale",kind:"out",lo:"空虛",hi:"好有意義"},
+  {dim:"mind",key:"anxiety",label:"焦慮",type:"scale",kind:"out",rev:true,lo:"平靜",hi:"好焦慮"}
+];
+
+/* ================= IndexedDB ================= */
+let _db;
+function db(){
+  if(_db) return Promise.resolve(_db);
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open("lifelog",1);
+    r.onupgradeneeded=()=>{ const d=r.result; d.createObjectStore("entries",{keyPath:"date"}); d.createObjectStore("kv"); };
+    r.onsuccess=()=>{ _db=r.result; res(_db); };
+    r.onerror=()=>rej(r.error);
+  });
+}
+async function tx(store,mode,fn){
+  const d=await db();
+  return new Promise((res,rej)=>{
+    const t=d.transaction(store,mode); const s=t.objectStore(store); const r=fn(s);
+    t.oncomplete=()=>res(r && "result" in r ? r.result : undefined);
+    t.onerror=()=>rej(t.error);
+  });
+}
+const Entries={
+  all:()=>tx("entries","readonly",s=>s.getAll()),
+  get:date=>tx("entries","readonly",s=>s.get(date)),
+  put:e=>tx("entries","readwrite",s=>s.put(e))
+};
+const KV={
+  get:k=>tx("kv","readonly",s=>s.get(k)),
+  set:(k,v)=>tx("kv","readwrite",s=>s.put(v,k))
+};
+
+/* ================= 工具 ================= */
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,"0");
+const fmt=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const today=()=>fmt(new Date());
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2600); }
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+/* ================= 紀錄 form ================= */
+let state={}, history=[];
+function blank(){ const s={}; FIELDS.forEach(f=>s[f.key]=f.type==="step"?0:null); s.tags=[]; return s; }
+function renderTags(){
+  const box=$("tags"); box.innerHTML="";
+  TAGS.forEach(t=>{ const b=document.createElement("button"); b.type="button"; b.textContent=t;
+    const on=(state.tags||[]).includes(t); b.setAttribute("aria-pressed",on);
+    b.onclick=()=>{ const cur=new Set(state.tags||[]); cur.has(t)?cur.delete(t):cur.add(t); state.tags=[...cur]; renderTags(); };
+    box.appendChild(b); });
+}
+
+function renderForm(){
+  const form=$("form"); form.innerHTML="";
+  Object.entries(DIMS).forEach(([dk,d])=>{
+    const sec=document.createElement("section"); sec.className="dim";
+    sec.innerHTML=`<div class="glyph" aria-hidden="true">${d.glyph}</div><div><p class="dimname">${d.name}</p><div class="fields"></div></div>`;
+    const box=sec.querySelector(".fields");
+    FIELDS.filter(f=>f.dim===dk).forEach(f=>box.appendChild(renderField(f)));
+    form.appendChild(sec);
+  });
+  renderTags();
+  updateMissing();
+}
+function renderField(f){
+  const el=document.createElement("div"); el.className="field"; el.dataset.key=f.key;
+  const tag=f.kind==="star"?`<span class="tag out">北極星</span>`:f.kind==="state"?`<span class="tag">狀態</span>`:f.kind==="out"?`<span class="tag out">結果${f.rev?(f.type==="yn"?"・冇最好":"・越低越好"):""}</span>`:`<span class="tag">輸入${f.rev?"・越少越好":""}</span>`;
+  el.innerHTML=`<div class="label"><span id="l_${f.key}">${f.label}</span>${tag}</div>`;
+  const v=state[f.key];
+  if(f.type==="step"){
+    const w=document.createElement("div"); w.className="stepper";
+    w.innerHTML=`<button type="button" aria-label="減少">−</button><output aria-labelledby="l_${f.key}">${v}${f.unit?`<small>${f.unit}</small>`:""}</output><button type="button" aria-label="增加">+</button>`;
+    w.children[0].onclick=()=>{ state[f.key]=Math.max(0,(state[f.key]||0)-f.step); refresh(f.key); };
+    w.children[2].onclick=()=>{ state[f.key]=(state[f.key]||0)+f.step; refresh(f.key); };
+    el.appendChild(w);
+  }else if(f.type==="scale"){
+    const w=document.createElement("div"); w.className="scale"; w.setAttribute("role","group"); w.setAttribute("aria-labelledby","l_"+f.key);
+    for(let i=1;i<=10;i++){ const b=document.createElement("button"); b.type="button"; b.textContent=i; b.setAttribute("aria-pressed",v===i);
+      b.onclick=()=>{ state[f.key]=state[f.key]===i?null:i; refresh(f.key); }; w.appendChild(b); }
+    el.appendChild(w);
+    const e=document.createElement("div"); e.className="ends"; e.innerHTML=`<span>${f.lo}</span><span>${f.hi}</span>`; el.appendChild(e);
+  }else if(f.type==="yn"){
+    const w=document.createElement("div"); w.className="yn"; w.setAttribute("role","group"); w.setAttribute("aria-labelledby","l_"+f.key);
+    [["有／係",true],["冇／未",false]].forEach(([t,val])=>{ const b=document.createElement("button"); b.type="button"; b.textContent=t; b.setAttribute("aria-pressed",v===val);
+      b.onclick=()=>{ state[f.key]=state[f.key]===val?null:val; refresh(f.key); }; w.appendChild(b); });
+    el.appendChild(w);
+  }else if(f.type==="time"){
+    const i=document.createElement("input"); i.type="time"; i.value=v||""; i.setAttribute("aria-labelledby","l_"+f.key);
+    i.onchange=()=>{ state[f.key]=i.value||null; updateMissing(); }; el.appendChild(i);
+  }
+  if(f.key==="skill"){ const z=zoneOf(state.challenge,state.skill);
+    if(z){ const n=document.createElement("div"); n.className="zone"; n.innerHTML=`<b>${ZONES[z][0]}</b>${ZONES[z][1]}`; el.appendChild(n); } }
+  if(f.key==="checklist_trades" && state.checklist_trades>state.trades){
+    const h=document.createElement("div"); h.className="hint"; h.textContent="跟 checklist 嘅單數唔可以多過總落單數。"; el.appendChild(h);
+  }
+  return el;
+}
+function refresh(key){
+  const keys = key==="trades" ? ["trades","checklist_trades"] : key==="challenge" ? ["challenge","skill"] : [key];
+  keys.forEach(k=>{ const node=document.querySelector(`.field[data-key="${k}"]`); if(node) node.replaceWith(renderField(FIELDS.find(f=>f.key===k))); });
+  updateMissing();
+}
+function updateMissing(){
+  const n=FIELDS.filter(f=>f.type!=="step" && (state[f.key]===null||state[f.key]===undefined||state[f.key]==="")).length;
+  $("missing").textContent=n?`仲有 ${n} 項未填`:"全部填好";
+}
+async function loadDay(date){
+  const e=await Entries.get(date);
+  state=Object.assign(blank(),e||{}); if(!Array.isArray(state.tags)) state.tags=[];
+  $("note").value=(e&&e.note)||"";
+  renderForm();
+}
+async function loadHistory(){
+  history=(await Entries.all()).sort((a,b)=>b.date.localeCompare(a.date));
+  const box=$("history");
+  if(!history.length){ box.innerHTML=`<div class="empty">第一筆紀錄提交咗之後會喺度出現。</div>`; $("streak").textContent="0"; return; }
+  const dash=v=>(v===null||v===undefined)?"–":v;
+  box.innerHTML=`<div class="row head"><span>日期</span><span>心流</span><span>精力</span><span>意義</span><span>焦慮</span></div>`;
+  history.slice(0,30).forEach(r=>{
+    const b=document.createElement("button"); b.type="button"; b.className="row";
+    b.innerHTML=`<span>${r.date.slice(5)}</span><span>${dash(r.flow_min)}</span><span>${dash(r.energy)}</span><span>${dash(r.meaning)}</span><span>${dash(r.anxiety)}</span>`;
+    b.onclick=()=>{ $("date").value=r.date; loadDay(r.date); window.scrollTo({top:0}); };
+    box.appendChild(b);
+  });
+  const dates=new Set(history.map(r=>r.date)); let n=0; const d=new Date();
+  if(!dates.has(fmt(d))) d.setDate(d.getDate()-1);
+  while(dates.has(fmt(d))){ n++; d.setDate(d.getDate()-1); }
+  $("streak").textContent=n;
+}
+$("save").onclick=async()=>{
+  if(state.checklist_trades>state.trades){ toast("跟 checklist 嘅單數多過總落單數，請改返先。"); return; }
+  const entry=Object.assign({},state,{date:$("date").value,note:$("note").value.trim(),updated_at:new Date().toISOString()});
+  try{ await Entries.put(entry); toast("已提交"); await loadHistory(); renderSyncStatus(); }
+  catch(e){ toast("儲存唔到：" + (e && e.message || "未知錯誤")); }
+};
+$("date").onchange=e=>loadDay(e.target.value);
+
+/* ================= 進度（顯示 local 機結果） ================= */
+const DIM_ORDER=["body","wealth","rel","craft","mind"];
+function spark(series){
+  const pts=series.filter(p=>p.v!==null&&p.v!==undefined);
+  if(pts.length<2) return "";
+  const w=300,h=60; const xs=i=>i/(pts.length-1)*w; const ys=v=>h-(v/100)*h;
+  const d=pts.map((p,i)=>(i?"L":"M")+xs(i).toFixed(1)+" "+ys(p.v).toFixed(1)).join(" ");
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="${w}" y1="${ys(50)}" y2="${ys(50)}" stroke="var(--line)" stroke-dasharray="4 4"/><path d="${d}" fill="none" stroke="var(--gold)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
+}
+async function renderResults(){
+  const r=await KV.get("results"); const box=$("results");
+  if(!r){ box.innerHTML=`<p class="empty">未有分析結果。去「同步」將紀錄送去 local 機，佢計完之後結果會喺度出現。</p>`; return; }
+  const gen=new Date(r.generated_at);
+  let html=`<p class="muted">Local 機分析時間：${esc(gen.toLocaleString("zh-HK"))}　紀錄日數：${r.days_logged}</p>`;
+  if(r.stage){
+    const pct=Math.round((r.stage.progress||0)*100);
+    html+=`<h3>階段</h3><div class="stage"><b>${esc(r.stage.name)}</b><div class="track" style="margin:8px 0"><div class="fill" style="width:${pct}%"></div></div><div class="muted">${pct}%　${esc(r.stage.detail||"")}</div></div>`;
+  }
+  const ns=r.north_star;
+  if(ns){
+    html+=`<h3>北極星：心流（7 日）</h3>`;
+    html+= (ns.score7!==null&&ns.score7!==undefined) ? `<div class="index"><b>${Math.round(ns.score7)}</b><span class="muted">50 = 你自己嘅 baseline</span></div>${spark(ns.series||[])}` : `<p class="muted">要有至少 7 日紀錄先計到分數。</p>`;
+    html+=`<div class="stats"><span><b>${Math.round(ns.flow_min_7d/60*10)/10}</b>心流小時</span><span><b>${ns.problems_solved_7d}</b>解決咗嘅問題</span><span><b>${ns.problems_found_7d}</b>新發現嘅問題</span></div>`;
+    const z=ns.zones_7d||{};
+    html+=`<div class="zonegrid">${["心流","焦慮","悶","冷漠"].map(k=>`<div><b>${z[k]||0}</b>${k}</div>`).join("")}</div>`;
+    html+=`<p class="muted">${ns.constraints_ok?"所有約束維度都喺底線以上。":"有約束維度跌穿底線，睇下面警報。"}</p>`;
+  }
+  if(r.flow_drivers&&r.flow_drivers.length){
+    html+=`<h3>邊啲因素推動你入心流</h3>`+r.flow_drivers.map(c=>`<div class="corr"><b>${esc(c.input_label)}</b>${c.lag?"（隔日）":"（同日）"}<br><span class="muted">r = ${c.r.toFixed(2)}　n = ${c.n}　${esc(c.note)}</span></div>`).join("");
+  }
+  if(r.dims){
+    html+=`<h3>約束維度（7 日平均，底線 ${r.floor||40}）</h3>`;
+    DIM_ORDER.forEach(k=>{ const d=r.dims[k]; if(!d) return; const v=d.score7;
+      const has=v!==null&&v!==undefined; const low=has&&v<(r.floor||40);
+      html+=`<div class="dimbar"><span class="g" aria-label="${DIMS[k].name}">${DIMS[k].glyph}</span><div class="track"><div class="fill ${low?"low":""}" style="width:${has?Math.max(2,Math.min(100,v)):0}%"></div></div><span class="v">${has?Math.round(v):"–"}</span>${d.drawdown>0.2?`<span class="dd">由高位跌咗 ${Math.round(d.drawdown*100)}%</span>`:""}</div>`;
+    });
+    html+=`<p class="muted">呢啲維度唔係目標本身，係支撐心流嘅約束。紅色 = 跌穿底線。</p>`;
+  }
+  if(r.alerts&&r.alerts.length){ html+=`<h3>警報</h3>`+r.alerts.map(a=>`<div class="alert">${esc(a)}</div>`).join(""); }
+  if(r.correlations&&r.correlations.length){
+    html+=`<h3>其他 input → 結果</h3>`+r.correlations.map(c=>`<div class="corr"><b>${esc(c.input_label)}</b> → ${esc(c.output_label)}${c.lag?"（隔日）":"（同日）"}<br><span class="muted">r = ${c.r.toFixed(2)}　n = ${c.n}　${esc(c.note)}</span></div>`).join("");
+  }else if(r.days_logged>0){
+    html+=`<h3>相關性</h3><p class="muted">要有至少 10 日紀錄先計到相關性。</p>`;
+  }
+  if(r.tags_30d&&Object.keys(r.tags_30d).length){
+    html+=`<h3>標籤（30 日）</h3><div class="stats">${Object.entries(r.tags_30d).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`<span><b>${n}</b>${esc(t)}</span>`).join("")}</div>`;
+  }
+  if(r.remarks&&r.remarks.length){
+    html+=`<h3>最近嘅 remark</h3>`+r.remarks.map(x=>`<div class="remark"><span class="muted">${esc(x.date)}${x.tags.length?"　"+x.tags.map(esc).join("、"):""}</span>${esc(x.note)}</div>`).join("");
+  }
+  box.innerHTML=html;
+}
+
+/* ================= 同步 ================= */
+async function renderSyncStatus(){
+  const last=await KV.get("last_sync"); const n=(await Entries.all()).length;
+  $("syncstatus").textContent=`手機上有 ${n} 日紀錄。`+(last?`上次同步：${new Date(last).toLocaleString("zh-HK")}`:"未同步過。");
+}
+async function saveConn(){ await KV.set("server",$("server").value.trim().replace(/\/+$/,"")); await KV.set("token",$("token").value); }
+async function api(path,opts={}){
+  await saveConn();
+  const base=await KV.get("server"), token=await KV.get("token");
+  if(!base) throw new Error("未填 server 地址");
+  const res=await fetch(base+path,Object.assign({},opts,{headers:Object.assign({"Content-Type":"application/json","X-Token":token||""},opts.headers||{})}));
+  if(res.status===401) throw new Error("同步密碼唔啱");
+  if(!res.ok) throw new Error("Server 回應 "+res.status);
+  return res.json();
+}
+$("testconn").onclick=async()=>{
+  try{ const r=await api("/api/health"); toast(`連線成功，local 機有 ${r.entries} 日紀錄`); }
+  catch(e){ toast("連唔到："+e.message+"。檢查 laptop server 同 Tailscale 開咗未。"); }
+};
+$("syncnow").onclick=async()=>{
+  const btn=$("syncnow"); btn.disabled=true;
+  try{
+    const entries=await Entries.all();
+    const r=await api("/api/sync",{method:"POST",body:JSON.stringify({entries})});
+    if(r.entries){ for(const e of r.entries){ const mine=await Entries.get(e.date); if(!mine||(e.updated_at||"")>(mine.updated_at||"")) await Entries.put(e); } }
+    if(r.results) await KV.set("results",r.results);
+    await KV.set("last_sync",new Date().toISOString());
+    toast(`已同步 ${entries.length} 日紀錄`);
+    await loadHistory(); await renderSyncStatus(); await renderResults();
+  }catch(e){ toast("同步失敗："+e.message); }
+  btn.disabled=false;
+};
+$("export").onclick=async()=>{
+  const entries=await Entries.all();
+  if(!entries.length){ toast("未有紀錄可以匯出。"); return; }
+  const payload={app:"lifelog",type:"entries",version:1,exported_at:new Date().toISOString(),entries};
+  const name=`lifelog-entries-${today()}.json`;
+  const file=new File([JSON.stringify(payload)],name,{type:"application/json"});
+  try{
+    if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:name}); toast("已匯出"); return; }
+  }catch(e){ if(e&&e.name==="AbortError") return; }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(file); a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+};
+$("importbtn").onclick=()=>$("importfile").click();
+$("importfile").onchange=async e=>{
+  const f=e.target.files[0]; e.target.value=""; if(!f) return;
+  try{
+    const j=JSON.parse(await f.text());
+    if(j.type==="results"&&j.generated_at){ await KV.set("results",j); toast("已匯入分析結果"); await renderResults(); showTab("progress"); return; }
+    const list=Array.isArray(j.entries)?j.entries:null;
+    if(!list) throw new Error("唔係 Life Log 嘅檔案");
+    let n=0; for(const x of list){ if(!x||!x.date) continue; const mine=await Entries.get(x.date); if(!mine||(x.updated_at||"")>(mine.updated_at||"")){ await Entries.put(x); n++; } }
+    toast(`已還原 ${n} 日紀錄`); await loadHistory(); await renderSyncStatus();
+  }catch(err){ toast("匯入唔到："+err.message); }
+};
+
+/* ================= tabs ================= */
+function showTab(t){
+  ["log","progress","sync"].forEach(k=>$("tab-"+k).hidden=k!==t);
+  document.querySelectorAll("nav button").forEach(b=>{ if(b.dataset.tab===t) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  $("submitbar").hidden=t!=="log";
+  if(t==="progress") renderResults();
+  if(t==="sync") renderSyncStatus();
+  window.scrollTo({top:0});
+}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+
+/* ================= 啟動 ================= */
+(async()=>{
+  $("date").value=today(); state=blank(); renderForm();
+  try{
+    await loadDay(today()); await loadHistory();
+    $("server").value=(await KV.get("server"))||""; $("token").value=(await KV.get("token"))||"";
+  }catch(e){ toast("開唔到本機資料庫："+(e&&e.message||"")); }
+  try{
+    if(navigator.storage&&navigator.storage.persist){
+      const ok=await navigator.storage.persist();
+      $("persist").textContent=ok?"手機已將呢個 app 嘅資料設為永久保存。":"系統未有承諾永久保存資料，記得定期同步或匯出做備份。";
+    }else{ $("persist").textContent="記得定期同步或匯出做備份。"; }
+  }catch(e){}
+  if("serviceWorker" in navigator){ try{ await navigator.serviceWorker.register("sw.js"); }catch(e){} }
+})();
+</script>
+</body>
+</html>
