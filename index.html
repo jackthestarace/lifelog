@@ -42,6 +42,7 @@ h1{font-family:"Noto Serif TC",serif;font-weight:900;font-size:30px;line-height:
 .streak{text-align:right;color:var(--muted);font-size:13px}
 .streak b{display:block;font-size:26px;color:var(--gold);font-weight:900;line-height:1}
 .datebar{display:flex;align-items:center;gap:10px;margin:12px 0 6px;color:var(--muted);font-size:14px}
+.datebar input{font-size:16px} /* iOS Safari：細過 16px 嘅輸入格一撳就會自動 zoom in */
 input[type=date],input[type=url],input[type=password],input[type=text]{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
 section.dim{display:grid;grid-template-columns:48px 1fr;gap:0 12px;padding:18px 0;border-top:1px solid var(--line)}
 .glyph{font-family:"Noto Serif TC",serif;font-weight:900;font-size:40px;line-height:1;color:var(--gold);padding-top:2px}
@@ -60,6 +61,11 @@ section.dim{display:grid;grid-template-columns:48px 1fr;gap:0 12px;padding:18px 
 .scale button,.yn button{height:40px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;font:inherit;font-weight:500;cursor:pointer}
 .scale button[aria-pressed="true"],.yn button[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:var(--sel-ink);font-weight:700}
 .yn{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:240px}
+.opts{display:grid;gap:6px}
+.opts button{min-height:44px;padding:0 2px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;font:inherit;font-size:14px;font-weight:500;line-height:1.2;cursor:pointer}
+.opts button[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:var(--sel-ink);font-weight:700}
+textarea.subnote{min-height:48px;margin-top:8px}
+.row .sm{font-size:12px}
 .ends{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px}
 input[type=time]{font:inherit;font-size:18px;font-weight:700;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-height:44px}
 textarea{width:100%;min-height:72px;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px}
@@ -94,6 +100,12 @@ h3{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:700}
 .corr b{font-weight:700}
 .stage{padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
 .spark{width:100%;height:60px;display:block;margin-top:8px}
+.miles div{display:grid;grid-template-columns:64px 1fr;gap:4px 10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px;color:var(--muted)}
+.miles div span{font-weight:700}
+.miles div small{grid-column:2;font-size:12px}
+.miles div.done{color:var(--ink)}
+.miles div.done span{color:var(--good)}
+.stage .stats{margin-top:10px}
 
 /* tabs + bottom bar */
 .bottom{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
@@ -203,27 +215,31 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
 const TAGS=["突破","心流","面對痛苦","逃避","新人","深度對話","靈感","好玩","攰"];
 function zoneOf(c,s){ if(c==null||s==null) return null; if(c>=5&&s>=5&&Math.abs(c-s)<=2) return "flow"; if(c<=4&&s<=4) return "apathy"; return c>s?"anxiety":"boredom"; }
 const ZONES={flow:["心流區","挑戰同能力都高，而且差唔多。保持，下次加少少難度。"],anxiety:["焦慮區","挑戰高過能力。將問題拆細，或者先補一樣技能。"],boredom:["悶區","能力高過挑戰。加難度、加 deadline，或者搵更大嘅問題。"],apathy:["冷漠區","挑戰同能力都低。加新刺激，或者搵人一齊做。"]};
+// 時間選項：存 index（0–3）。同 engine.py 嘅 T4 / EX4 一致，改一邊要改埋另一邊。
+const T4=["0–45分","45分–4時","4–8時",">8時"];
+const EX4=["0–30分","30分–1時","1–4時",">4時"];
+const S3=["沒有","有","已解決"];
 const DIMS = {
   flow:{glyph:"流",name:"心流（北極星）"},
   body:{glyph:"身",name:"身體"}, wealth:{glyph:"財",name:"財富"}, rel:{glyph:"關",name:"關係"},
   craft:{glyph:"創",name:"事業／創造"}, mind:{glyph:"心",name:"精神"}
 };
 const FIELDS = [
-  {dim:"flow",key:"flow_min",label:"今日完全投入、唔覺時間過嘅時間",unit:"分鐘",type:"step",step:15,kind:"star"},
+  {dim:"flow",key:"flow_band",label:"今日完全投入、唔覺時間過嘅時間",type:"choice",opts:T4,kind:"star"},
   {dim:"flow",key:"challenge",label:"今日最大挑戰嘅難度",type:"scale",kind:"state",lo:"好易",hi:"好難"},
   {dim:"flow",key:"skill",label:"你嘅能力應付到幾多",type:"scale",kind:"state",lo:"完全唔夠",hi:"綽綽有餘"},
-  {dim:"flow",key:"problems_solved",label:"解決咗嘅問題",type:"step",step:1,kind:"in"},
-  {dim:"flow",key:"problems_found",label:"新發現嘅問題（睇到更多問題 = 維度提高）",type:"step",step:1,kind:"in"},
+  {dim:"flow",key:"solve_state",label:"有冇解決問題",type:"choice",opts:S3,kind:"in",noteKey:"solve_note"},
+  {dim:"flow",key:"found_state",label:"有冇發現新問題（睇到更多問題 = 維度提高）",type:"choice",opts:S3,kind:"in",noteKey:"found_note"},
   {dim:"body",key:"bedtime",label:"琴晚上床時間",type:"time",kind:"in"},
-  {dim:"body",key:"exercise_min",label:"運動",unit:"分鐘",type:"step",step:15,kind:"in"},
+  {dim:"body",key:"exercise_band",label:"運動",type:"choice",opts:EX4,kind:"in"},
   {dim:"body",key:"energy",label:"朝早精力",type:"scale",kind:"out",lo:"好攰",hi:"精神"},
   {dim:"body",key:"crash",label:"下晝有冇攰到做唔到嘢",type:"yn",kind:"out",rev:true},
   {dim:"wealth",key:"trades",label:"今日落單數",type:"step",step:1,kind:"in"},
   {dim:"wealth",key:"checklist_trades",label:"其中有跟 checklist",type:"step",step:1,kind:"in"},
   {dim:"wealth",key:"screen_min",label:"盯盤時間",unit:"分鐘",type:"step",step:15,kind:"in",rev:true},
-  {dim:"rel",key:"quality_meet",label:"有質素見面（≥30 分鐘）",type:"step",step:1,kind:"in"},
+  {dim:"rel",key:"meet_band",label:"有質素見面嘅時間",type:"choice",opts:T4,kind:"in"},
   {dim:"rel",key:"initiate",label:"主動發起（約人／follow-up）",type:"step",step:1,kind:"in"},
-  {dim:"craft",key:"deep_blocks",label:"Deep work（≥45 分鐘 block）",type:"step",step:1,kind:"in"},
+  {dim:"craft",key:"deep_band",label:"Deep work 時間",type:"choice",opts:T4,kind:"in"},
   {dim:"craft",key:"mit_done",label:"最重要一件事完成",type:"yn",kind:"in"},
   {dim:"mind",key:"pain_tasks",label:"完成痛感 ≥7 嘅任務",type:"step",step:1,kind:"in"},
   {dim:"mind",key:"avoid_signals",label:"逃避訊號",type:"step",step:1,kind:"in",rev:true},
@@ -268,9 +284,36 @@ const today=()=>fmt(new Date());
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2600); }
 function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
+/* ================= 舊紀錄轉換（schema 1 → 2） ================= */
+// 同 engine.py 嘅 normalize() 一樣，改一邊要改埋另一邊。啱啱喺界線上（例如 240 分鐘）歸入細嗰個選項。
+const band=(v,cuts)=>cuts.filter(c=>v>c).length;
+const OLD_KEYS=["flow_min","problems_solved","problems_found","exercise_min","quality_meet","deep_blocks"];
+function migrate(e){
+  if(!e || (e.schema||1)>=2) return null;
+  const n=Object.assign({},e), num=k=>Number(e[k])||0;
+  const answered=["challenge","skill","bedtime","energy","crash","mit_done","meaning","anxiety"].some(k=>e[k]!==null&&e[k]!==undefined&&e[k]!=="")
+    || (e.tags&&e.tags.length) || e.note;
+  if(answered){
+    n.flow_band=band(num("flow_min"),[45,240,480]);
+    n.solve_state=num("problems_solved")>0?2:0;
+    n.found_state=num("problems_found")>0?1:0;
+    n.exercise_band=band(num("exercise_min"),[30,60,240]);
+    n.meet_band=band(num("quality_meet"),[45,240,480]);   // 舊版問「幾多次」，但實際上當咗分鐘填
+    n.deep_band=band(num("deep_blocks"),[45,240,480]);
+  }
+  OLD_KEYS.forEach(k=>delete n[k]);
+  n.schema=2; n.updated_at=new Date().toISOString();
+  return n;
+}
+async function migrateAll(){
+  let n=0;
+  for(const e of await Entries.all()){ const m=migrate(e); if(m){ await Entries.put(m); n++; } }
+  return n;
+}
+
 /* ================= 紀錄 form ================= */
 let state={}, history=[];
-function blank(){ const s={}; FIELDS.forEach(f=>s[f.key]=f.type==="step"?0:null); s.tags=[]; return s; }
+function blank(){ const s={}; FIELDS.forEach(f=>{ s[f.key]=f.type==="step"?0:null; if(f.noteKey) s[f.noteKey]=""; }); s.tags=[]; return s; }
 function renderTags(){
   const box=$("tags"); box.innerHTML="";
   TAGS.forEach(t=>{ const b=document.createElement("button"); b.type="button"; b.textContent=t;
@@ -308,6 +351,16 @@ function renderField(f){
       b.onclick=()=>{ state[f.key]=state[f.key]===i?null:i; refresh(f.key); }; w.appendChild(b); }
     el.appendChild(w);
     const e=document.createElement("div"); e.className="ends"; e.innerHTML=`<span>${f.lo}</span><span>${f.hi}</span>`; el.appendChild(e);
+  }else if(f.type==="choice"){
+    const w=document.createElement("div"); w.className="opts"; w.setAttribute("role","group"); w.setAttribute("aria-labelledby","l_"+f.key);
+    w.style.gridTemplateColumns=`repeat(${f.opts.length},1fr)`;
+    f.opts.forEach((t,i)=>{ const b=document.createElement("button"); b.type="button"; b.textContent=t; b.setAttribute("aria-pressed",v===i);
+      b.onclick=()=>{ state[f.key]=state[f.key]===i?null:i; refresh(f.key); }; w.appendChild(b); });
+    el.appendChild(w);
+    if(f.noteKey && v===2){
+      const t=document.createElement("textarea"); t.className="subnote"; t.placeholder="解決咗咩（可選）"; t.setAttribute("aria-label","解決咗咩（可選）");
+      t.value=state[f.noteKey]||""; t.oninput=()=>{ state[f.noteKey]=t.value; }; el.appendChild(t);
+    }
   }else if(f.type==="yn"){
     const w=document.createElement("div"); w.className="yn"; w.setAttribute("role","group"); w.setAttribute("aria-labelledby","l_"+f.key);
     [["有／係",true],["冇／未",false]].forEach(([t,val])=>{ const b=document.createElement("button"); b.type="button"; b.textContent=t; b.setAttribute("aria-pressed",v===val);
@@ -347,7 +400,7 @@ async function loadHistory(){
   box.innerHTML=`<div class="row head"><span>日期</span><span>心流</span><span>精力</span><span>意義</span><span>焦慮</span></div>`;
   history.slice(0,30).forEach(r=>{
     const b=document.createElement("button"); b.type="button"; b.className="row";
-    b.innerHTML=`<span>${r.date.slice(5)}</span><span>${dash(r.flow_min)}</span><span>${dash(r.energy)}</span><span>${dash(r.meaning)}</span><span>${dash(r.anxiety)}</span>`;
+    b.innerHTML=`<span>${r.date.slice(5)}</span><span class="sm">${r.flow_band==null?"–":T4[r.flow_band]}</span><span>${dash(r.energy)}</span><span>${dash(r.meaning)}</span><span>${dash(r.anxiety)}</span>`;
     b.onclick=()=>{ $("date").value=r.date; loadDay(r.date); window.scrollTo({top:0}); };
     box.appendChild(b);
   });
@@ -358,7 +411,8 @@ async function loadHistory(){
 }
 $("save").onclick=async()=>{
   if(state.checklist_trades>state.trades){ toast("跟 checklist 嘅單數多過總落單數，請改返先。"); return; }
-  const entry=Object.assign({},state,{date:$("date").value,note:$("note").value.trim(),updated_at:new Date().toISOString()});
+  const entry=Object.assign({},state,{date:$("date").value,note:$("note").value.trim(),schema:2,updated_at:new Date().toISOString()});
+  FIELDS.forEach(f=>{ if(f.noteKey) entry[f.noteKey]=entry[f.key]===2?(entry[f.noteKey]||"").trim():""; });
   try{ await Entries.put(entry); toast("已提交"); await loadHistory(); renderSyncStatus(); }
   catch(e){ toast("儲存唔到：" + (e && e.message || "未知錯誤")); }
 };
@@ -376,43 +430,59 @@ function spark(series){
 async function renderResults(){
   const r=await KV.get("results"); const box=$("results");
   if(!r){ box.innerHTML=`<p class="empty">未有分析結果。去「同步」將紀錄送去 local 機，佢計完之後結果會喺度出現。</p>`; return; }
-  const gen=new Date(r.generated_at);
-  let html=`<p class="muted">Local 機分析時間：${esc(gen.toLocaleString("zh-HK"))}　紀錄日數：${r.days_logged}</p>`;
+  const has=v=>v!==null&&v!==undefined, n=r.days_logged||0, ns=r.north_star||{};
+  const corr=c=>`<div class="corr"><b>${esc(c.input_label)}</b>${c.output_label&&c.output!=="flow_min"?` → ${esc(c.output_label)}`:""}${c.lag?"（隔日）":"（同日）"}<br><span class="muted">r = ${c.r.toFixed(2)}　n = ${c.n}　${esc(c.note)}</span></div>`;
+  let html="";
+
+  // 1. 總覽：階段 + 記錄日數
   if(r.stage){
     const pct=Math.round((r.stage.progress||0)*100);
-    html+=`<h3>階段</h3><div class="stage"><b>${esc(r.stage.name)}</b><div class="track" style="margin:8px 0"><div class="fill" style="width:${pct}%"></div></div><div class="muted">${pct}%　${esc(r.stage.detail||"")}</div></div>`;
+    html+=`<div class="stage"><b>${esc(r.stage.name)}</b><div class="track" style="margin:8px 0"><div class="fill" style="width:${pct}%"></div></div><div class="muted">${esc(r.stage.detail||"")}</div>
+      <div class="stats"><span><b>${n}</b>已記錄日數</span><span><b>${r.streak??"–"}</b>連續日數</span></div></div>`;
   }
-  const ns=r.north_star;
-  if(ns){
-    html+=`<h3>北極星：心流（7 日）</h3>`;
-    html+= (ns.score7!==null&&ns.score7!==undefined) ? `<div class="index"><b>${Math.round(ns.score7)}</b><span class="muted">50 = 你自己嘅 baseline</span></div>${spark(ns.series||[])}` : `<p class="muted">要有至少 7 日紀錄先計到分數。</p>`;
-    html+=`<div class="stats"><span><b>${Math.round(ns.flow_min_7d/60*10)/10}</b>心流小時</span><span><b>${ns.problems_solved_7d}</b>解決咗嘅問題</span><span><b>${ns.problems_found_7d}</b>新發現嘅問題</span></div>`;
-    const z=ns.zones_7d||{};
-    html+=`<div class="zonegrid">${["心流","焦慮","悶","冷漠"].map(k=>`<div><b>${z[k]||0}</b>${k}</div>`).join("")}</div>`;
-    html+=`<p class="muted">${ns.constraints_ok?"所有約束維度都喺底線以上。":"有約束維度跌穿底線，睇下面警報。"}</p>`;
+  html+=`<p class="muted">Local 機分析時間：${esc(new Date(r.generated_at).toLocaleString("zh-HK",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}))}${(r.version||0)<3?"　（舊版結果，同步一次會更新）":""}</p>`;
+
+  // 2. 未夠數據嘅部分：用一個時間表講幾時解鎖，唔好每格都寫「要有至少 N 日」
+  if(n<14){
+    const miles=[[1,"開始記錄"],[7,"出分數：北極星同約束維度"],[10,"出相關性：邊啲因素推動你入心流"],[14,"Stage 0 完成，進入 Stage 1"]];
+    html+=`<h3>數據解鎖</h3><div class="miles">`+miles.map(([d,t])=>`<div class="${n>=d?"done":""}"><span>${n>=d?"✓":"第 "+d+" 日"}</span>${t}${n<d?`<small>仲差 ${d-n} 日</small>`:""}</div>`).join("")+`</div>`;
   }
-  if(r.flow_drivers&&r.flow_drivers.length){
-    html+=`<h3>邊啲因素推動你入心流</h3>`+r.flow_drivers.map(c=>`<div class="corr"><b>${esc(c.input_label)}</b>${c.lag?"（隔日）":"（同日）"}<br><span class="muted">r = ${c.r.toFixed(2)}　n = ${c.n}　${esc(c.note)}</span></div>`).join("");
-  }
-  if(r.dims){
-    html+=`<h3>約束維度（7 日平均，底線 ${r.floor||40}）</h3>`;
-    DIM_ORDER.forEach(k=>{ const d=r.dims[k]; if(!d) return; const v=d.score7;
-      const has=v!==null&&v!==undefined; const low=has&&v<(r.floor||40);
-      html+=`<div class="dimbar"><span class="g" aria-label="${DIMS[k].name}">${DIMS[k].glyph}</span><div class="track"><div class="fill ${low?"low":""}" style="width:${has?Math.max(2,Math.min(100,v)):0}%"></div></div><span class="v">${has?Math.round(v):"–"}</span>${d.drawdown>0.2?`<span class="dd">由高位跌咗 ${Math.round(d.drawdown*100)}%</span>`:""}</div>`;
-    });
-    html+=`<p class="muted">呢啲維度唔係目標本身，係支撐心流嘅約束。紅色 = 跌穿底線。</p>`;
-  }
+
+  // 3. 警報（要行動嘅放前面）
   if(r.alerts&&r.alerts.length){ html+=`<h3>警報</h3>`+r.alerts.map(a=>`<div class="alert">${esc(a)}</div>`).join(""); }
-  if(r.correlations&&r.correlations.length){
-    html+=`<h3>其他 input → 結果</h3>`+r.correlations.map(c=>`<div class="corr"><b>${esc(c.input_label)}</b> → ${esc(c.output_label)}${c.lag?"（隔日）":"（同日）"}<br><span class="muted">r = ${c.r.toFixed(2)}　n = ${c.n}　${esc(c.note)}</span></div>`).join("");
-  }else if(r.days_logged>0){
-    html+=`<h3>相關性</h3><p class="muted">要有至少 10 日紀錄先計到相關性。</p>`;
+
+  // 4. 最近 7 日（第 1 日就有）
+  const z=ns.zones_7d||{};
+  html+=`<h3>最近 7 日</h3><div class="stats">
+    <span><b>${has(ns.flow_min_7d)?"約 "+Math.round(ns.flow_min_7d/60):"–"}</b>心流小時</span>
+    <span><b>${ns.solved_days_7d??"–"}</b>有解決問題（日）</span>
+    <span><b>${ns.found_days_7d??"–"}</b>發現新問題（日）</span></div>
+    <div class="zonegrid">${["心流","焦慮","悶","冷漠"].map(k=>`<div><b>${z[k]||0}</b>${k}區</div>`).join("")}</div>`;
+
+  // 5. 北極星分數（第 7 日先有）
+  if(has(ns.score7)){
+    html+=`<h3>北極星：心流分數（7 日）</h3><div class="index"><b>${Math.round(ns.score7)}</b><span class="muted">50 = 你自己嘅 baseline</span></div>${spark(ns.series||[])}`;
   }
+
+  // 6. 約束維度（有分數先顯示）
+  if(r.dims&&DIM_ORDER.some(k=>r.dims[k]&&has(r.dims[k].score7))){
+    html+=`<h3>約束維度（7 日平均，底線 ${r.floor||40}）</h3>`;
+    DIM_ORDER.forEach(k=>{ const d=r.dims[k]; if(!d) return; const v=d.score7, ok=has(v), low=ok&&v<(r.floor||40);
+      html+=`<div class="dimbar"><span class="g" aria-label="${DIMS[k].name}">${DIMS[k].glyph}</span><div class="track"><div class="fill ${low?"low":""}" style="width:${ok?Math.max(2,Math.min(100,v)):0}%"></div></div><span class="v">${ok?Math.round(v):"–"}</span>${d.drawdown>0.2?`<span class="dd">由高位跌咗 ${Math.round(d.drawdown*100)}%</span>`:""}</div>`;
+    });
+    html+=`<p class="muted">${ns.constraints_ok?"所有約束維度都喺底線以上。":"有約束維度跌穿底線，睇上面警報。"}呢啲維度唔係目標，係支撐心流嘅約束。</p>`;
+  }
+
+  // 7. 相關性（第 10 日先有）
+  if(r.flow_drivers&&r.flow_drivers.length) html+=`<h3>邊啲因素推動你入心流</h3>`+r.flow_drivers.map(corr).join("");
+  if(r.correlations&&r.correlations.length) html+=`<h3>其他 input → 結果</h3>`+r.correlations.map(corr).join("");
+
+  // 8. 標籤同 remark
   if(r.tags_30d&&Object.keys(r.tags_30d).length){
-    html+=`<h3>標籤（30 日）</h3><div class="stats">${Object.entries(r.tags_30d).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`<span><b>${n}</b>${esc(t)}</span>`).join("")}</div>`;
+    html+=`<h3>標籤（30 日）</h3><div class="stats">${Object.entries(r.tags_30d).sort((a,b)=>b[1]-a[1]).map(([t,c])=>`<span><b>${c}</b>${esc(t)}</span>`).join("")}</div>`;
   }
   if(r.remarks&&r.remarks.length){
-    html+=`<h3>最近嘅 remark</h3>`+r.remarks.map(x=>`<div class="remark"><span class="muted">${esc(x.date)}${x.tags.length?"　"+x.tags.map(esc).join("、"):""}</span>${esc(x.note)}</div>`).join("");
+    html+=`<h3>最近嘅 remark</h3>`+r.remarks.map(x=>`<div class="remark"><span class="muted">${esc(x.date)}${x.tags&&x.tags.length?"　"+x.tags.map(esc).join("、"):""}</span>${x.note?`<div>${esc(x.note)}</div>`:""}${x.solved?`<div><b>解決：</b>${esc(x.solved)}</div>`:""}${x.found?`<div><b>新問題（已解決）：</b>${esc(x.found)}</div>`:""}</div>`).join("");
   }
   box.innerHTML=html;
 }
@@ -441,7 +511,7 @@ $("syncnow").onclick=async()=>{
   try{
     const entries=await Entries.all();
     const r=await api("/api/sync",{method:"POST",body:JSON.stringify({entries})});
-    if(r.entries){ for(const e of r.entries){ const mine=await Entries.get(e.date); if(!mine||(e.updated_at||"")>(mine.updated_at||"")) await Entries.put(e); } }
+    if(r.entries){ for(const e of r.entries){ const mine=await Entries.get(e.date); if(!mine||(e.updated_at||"")>(mine.updated_at||"")) await Entries.put(e); } await migrateAll(); }
     if(r.results) await KV.set("results",r.results);
     await KV.set("last_sync",new Date().toISOString());
     toast(`已同步 ${entries.length} 日紀錄`);
@@ -470,6 +540,7 @@ $("importfile").onchange=async e=>{
     const list=Array.isArray(j.entries)?j.entries:null;
     if(!list) throw new Error("唔係 Life Log 嘅檔案");
     let n=0; for(const x of list){ if(!x||!x.date) continue; const mine=await Entries.get(x.date); if(!mine||(x.updated_at||"")>(mine.updated_at||"")){ await Entries.put(x); n++; } }
+    await migrateAll();
     toast(`已還原 ${n} 日紀錄`); await loadHistory(); await renderSyncStatus();
   }catch(err){ toast("匯入唔到："+err.message); }
 };
@@ -489,6 +560,8 @@ document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>showTab(b.datas
 (async()=>{
   $("date").value=today(); state=blank(); renderForm();
   try{
+    const migrated=await migrateAll();
+    if(migrated) toast(`已將 ${migrated} 日舊紀錄轉做新選項，記得同步`);
     await loadDay(today()); await loadHistory();
     $("server").value=(await KV.get("server"))||""; $("token").value=(await KV.get("token"))||"";
   }catch(e){ toast("開唔到本機資料庫："+(e&&e.message||"")); }
