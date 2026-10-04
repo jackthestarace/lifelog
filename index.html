@@ -212,7 +212,7 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
 
 <script>
 /* ================= 欄位定義（改呢度就改到個 form） ================= */
-const TAGS=["突破","心流","面對痛苦","逃避","新人","深度對話","靈感","好玩","攰"];
+const TAGS=["突破","心流","面對痛苦","逃避","新人","深度對話","靈感","好玩","攰","圓桌"];
 function zoneOf(c,s){ if(c==null||s==null) return null; if(c>=5&&s>=5&&Math.abs(c-s)<=2) return "flow"; if(c<=4&&s<=4) return "apathy"; return c>s?"anxiety":"boredom"; }
 const ZONES={flow:["心流區","挑戰同能力都高，而且差唔多。保持，下次加少少難度。"],anxiety:["焦慮區","挑戰高過能力。將問題拆細，或者先補一樣技能。"],boredom:["悶區","能力高過挑戰。加難度、加 deadline，或者搵更大嘅問題。"],apathy:["冷漠區","挑戰同能力都低。加新刺激，或者搵人一齊做。"]};
 // 時間選項：存 index（0–3）。同 engine.py 嘅 T4 / EX4 一致，改一邊要改埋另一邊。
