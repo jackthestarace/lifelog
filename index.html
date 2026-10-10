@@ -195,6 +195,7 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
 
     <h2>儲存</h2>
     <p class="muted" id="persist"></p>
+    <p class="muted">App 版本：<span id="appver"></span></p>
   </main>
 </div>
 
@@ -212,6 +213,8 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
+const APP_VERSION="v6";   // 同 sw.js 嘅 VERSION 一齊改
+
 /* ================= 欄位定義（改呢度就改到個 form） ================= */
 const TAGS=["突破","心流","面對痛苦","逃避","新人","深度對話","靈感","好玩","攰","圓桌"];
 function zoneOf(c,s){ if(c==null||s==null) return null; if(c>=5&&s>=5&&Math.abs(c-s)<=2) return "flow"; if(c<=4&&s<=4) return "apathy"; return c>s?"anxiety":"boredom"; }
@@ -557,6 +560,7 @@ document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>showTab(b.datas
 
 /* ================= 啟動 ================= */
 (async()=>{
+  $("appver").textContent=APP_VERSION;
   $("date").value=today(); state=blank(); renderForm();
   try{
     const migrated=await migrateAll();
@@ -570,7 +574,16 @@ document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>showTab(b.datas
       $("persist").textContent=ok?"手機已將呢個 app 嘅資料設為永久保存。":"系統未有承諾永久保存資料，記得定期同步或匯出做備份。";
     }else{ $("persist").textContent="記得定期同步或匯出做備份。"; }
   }catch(e){}
-  if("serviceWorker" in navigator){ try{ await navigator.serviceWorker.register("sw.js"); }catch(e){} }
+  if("serviceWorker" in navigator){
+    try{
+      const reg=await navigator.serviceWorker.register("sw.js");
+      // iPhone 主畫面 app 通常只係由背景返嚟，唔會重新載入，所以返到前景就 check 一次有冇新版
+      document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") reg.update().catch(()=>{}); });
+      // 新版 service worker 接手之後自動 reload 一次，唔使開兩次 app
+      let reloading=false, hadController=!!navigator.serviceWorker.controller;
+      navigator.serviceWorker.addEventListener("controllerchange",()=>{ if(hadController&&!reloading){ reloading=true; location.reload(); } hadController=true; });
+    }catch(e){}
+  }
 })();
 </script>
 </body>
