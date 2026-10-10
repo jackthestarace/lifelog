@@ -65,6 +65,7 @@ section.dim{display:grid;grid-template-columns:48px 1fr;gap:0 12px;padding:18px 
 .opts button{min-height:44px;padding:0 2px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;font:inherit;font-size:14px;font-weight:500;line-height:1.2;cursor:pointer}
 .opts button[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:var(--sel-ink);font-weight:700}
 textarea.subnote{min-height:48px;margin-top:8px}
+input.num{font:inherit;font-size:18px;font-weight:700;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-height:44px;width:160px}
 .row .sm{font-size:12px}
 .ends{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px}
 input[type=time]{font:inherit;font-size:18px;font-weight:700;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-height:44px}
@@ -232,17 +233,14 @@ const FIELDS = [
   {dim:"flow",key:"found_state",label:"有冇發現新問題（睇到更多問題 = 維度提高）",type:"choice",opts:S3,kind:"in",noteKey:"found_note"},
   {dim:"body",key:"bedtime",label:"琴晚上床時間",type:"time",kind:"in"},
   {dim:"body",key:"exercise_band",label:"運動",type:"choice",opts:EX4,kind:"in"},
+  {dim:"body",key:"steps",label:"今日步數（睇「健康」app）",type:"num",kind:"in",ph:"例如 6500"},
   {dim:"body",key:"energy",label:"朝早精力",type:"scale",kind:"out",lo:"好攰",hi:"精神"},
   {dim:"body",key:"crash",label:"下晝有冇攰到做唔到嘢",type:"yn",kind:"out",rev:true},
   {dim:"wealth",key:"trades",label:"今日落單數",type:"step",step:1,kind:"in"},
-  {dim:"wealth",key:"checklist_trades",label:"其中有跟 checklist",type:"step",step:1,kind:"in"},
   {dim:"wealth",key:"screen_min",label:"盯盤時間",unit:"分鐘",type:"step",step:15,kind:"in",rev:true},
   {dim:"rel",key:"meet_band",label:"有質素見面嘅時間",type:"choice",opts:T4,kind:"in"},
   {dim:"rel",key:"initiate",label:"主動發起（約人／follow-up）",type:"step",step:1,kind:"in"},
   {dim:"craft",key:"deep_band",label:"Deep work 時間",type:"choice",opts:T4,kind:"in"},
-  {dim:"craft",key:"mit_done",label:"最重要一件事完成",type:"yn",kind:"in"},
-  {dim:"mind",key:"pain_tasks",label:"完成痛感 ≥7 嘅任務",type:"step",step:1,kind:"in"},
-  {dim:"mind",key:"avoid_signals",label:"逃避訊號",type:"step",step:1,kind:"in",rev:true},
   {dim:"mind",key:"meaning",label:"意義感",type:"scale",kind:"out",lo:"空虛",hi:"好有意義"},
   {dim:"mind",key:"anxiety",label:"焦慮",type:"scale",kind:"out",rev:true,lo:"平靜",hi:"好焦慮"}
 ];
@@ -366,19 +364,21 @@ function renderField(f){
     [["有／係",true],["冇／未",false]].forEach(([t,val])=>{ const b=document.createElement("button"); b.type="button"; b.textContent=t; b.setAttribute("aria-pressed",v===val);
       b.onclick=()=>{ state[f.key]=state[f.key]===val?null:val; refresh(f.key); }; w.appendChild(b); });
     el.appendChild(w);
+  }else if(f.type==="num"){
+    const i=document.createElement("input"); i.type="text"; i.inputMode="numeric"; i.pattern="[0-9]*"; i.className="num"; i.placeholder=f.ph||"";
+    i.value=v==null?"":v; i.setAttribute("aria-labelledby","l_"+f.key);
+    i.oninput=()=>{ const d=i.value.replace(/[^0-9]/g,""); if(d!==i.value) i.value=d; state[f.key]=d===""?null:Number(d); updateMissing(); };
+    el.appendChild(i);
   }else if(f.type==="time"){
     const i=document.createElement("input"); i.type="time"; i.value=v||""; i.setAttribute("aria-labelledby","l_"+f.key);
     i.onchange=()=>{ state[f.key]=i.value||null; updateMissing(); }; el.appendChild(i);
   }
   if(f.key==="skill"){ const z=zoneOf(state.challenge,state.skill);
     if(z){ const n=document.createElement("div"); n.className="zone"; n.innerHTML=`<b>${ZONES[z][0]}</b>${ZONES[z][1]}`; el.appendChild(n); } }
-  if(f.key==="checklist_trades" && state.checklist_trades>state.trades){
-    const h=document.createElement("div"); h.className="hint"; h.textContent="跟 checklist 嘅單數唔可以多過總落單數。"; el.appendChild(h);
-  }
   return el;
 }
 function refresh(key){
-  const keys = key==="trades" ? ["trades","checklist_trades"] : key==="challenge" ? ["challenge","skill"] : [key];
+  const keys = key==="challenge" ? ["challenge","skill"] : [key];
   keys.forEach(k=>{ const node=document.querySelector(`.field[data-key="${k}"]`); if(node) node.replaceWith(renderField(FIELDS.find(f=>f.key===k))); });
   updateMissing();
 }
@@ -410,7 +410,6 @@ async function loadHistory(){
   $("streak").textContent=n;
 }
 $("save").onclick=async()=>{
-  if(state.checklist_trades>state.trades){ toast("跟 checklist 嘅單數多過總落單數，請改返先。"); return; }
   const entry=Object.assign({},state,{date:$("date").value,note:$("note").value.trim(),schema:2,updated_at:new Date().toISOString()});
   FIELDS.forEach(f=>{ if(f.noteKey) entry[f.noteKey]=entry[f.key]===2?(entry[f.noteKey]||"").trim():""; });
   try{ await Entries.put(entry); toast("已提交"); await loadHistory(); renderSyncStatus(); }

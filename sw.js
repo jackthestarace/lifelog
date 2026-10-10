@@ -1,5 +1,5 @@
 // 改咗任何 PWA 檔案之後，將 VERSION 加 1，手機先會攞新版本
-const VERSION = "lifelog-v4";
+const VERSION = "lifelog-v5";
 const CORE = ["./", "./index.html", "./manifest.json", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
