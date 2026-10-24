@@ -213,7 +213,7 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const APP_VERSION="v6";   // 同 sw.js 嘅 VERSION 一齊改
+const APP_VERSION="v7";   // 同 sw.js 嘅 VERSION 一齊改
 
 /* ================= 欄位定義（改呢度就改到個 form） ================= */
 const TAGS=["突破","心流","面對痛苦","逃避","新人","深度對話","靈感","好玩","攰","圓桌"];
@@ -415,7 +415,7 @@ async function loadHistory(){
 $("save").onclick=async()=>{
   const entry=Object.assign({},state,{date:$("date").value,note:$("note").value.trim(),schema:2,updated_at:new Date().toISOString()});
   FIELDS.forEach(f=>{ if(f.noteKey) entry[f.noteKey]=entry[f.key]===2?(entry[f.noteKey]||"").trim():""; });
-  try{ await Entries.put(entry); toast("已提交"); await loadHistory(); renderSyncStatus(); }
+  try{ await Entries.put(entry); toast("已提交"); await loadHistory(); renderSyncStatus(); autoSync(); }
   catch(e){ toast("儲存唔到：" + (e && e.message || "未知錯誤")); }
 };
 $("date").onchange=e=>loadDay(e.target.value);
@@ -508,7 +508,9 @@ $("testconn").onclick=async()=>{
   try{ const r=await api("/api/health"); toast(`連線成功，local 機有 ${r.entries} 日紀錄`); }
   catch(e){ toast("連唔到："+e.message+"。檢查 laptop server 同 Tailscale 開咗未。"); }
 };
-$("syncnow").onclick=async()=>{
+let syncing=false;
+async function doSync(quiet){
+  if(syncing) return; syncing=true;
   const btn=$("syncnow"); btn.disabled=true;
   try{
     const entries=await Entries.all();
@@ -516,11 +518,15 @@ $("syncnow").onclick=async()=>{
     if(r.entries){ for(const e of r.entries){ const mine=await Entries.get(e.date); if(!mine||(e.updated_at||"")>(mine.updated_at||"")) await Entries.put(e); } await migrateAll(); }
     if(r.results) await KV.set("results",r.results);
     await KV.set("last_sync",new Date().toISOString());
-    toast(`已同步 ${entries.length} 日紀錄`);
+    if(!quiet) toast(`已同步 ${entries.length} 日紀錄`);
     await loadHistory(); await renderSyncStatus(); await renderResults();
-  }catch(e){ toast("同步失敗："+e.message); }
-  btn.disabled=false;
-};
+  }catch(e){ if(!quiet) toast("同步失敗："+e.message); }
+  btn.disabled=false; syncing=false;
+}
+$("syncnow").onclick=()=>doSync(false);
+// 開 app、返到前景、提交紀錄之後自動喺背景同步；連唔到就靜靜雞唔理，下次再試
+async function autoSync(){ if(await KV.get("server") && await KV.get("token")) doSync(true); }
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") autoSync(); });
 $("export").onclick=async()=>{
   const entries=await Entries.all();
   if(!entries.length){ toast("未有紀錄可以匯出。"); return; }
@@ -567,6 +573,7 @@ document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>showTab(b.datas
     if(migrated) toast(`已將 ${migrated} 日舊紀錄轉做新選項，記得同步`);
     await loadDay(today()); await loadHistory();
     $("server").value=(await KV.get("server"))||""; $("token").value=(await KV.get("token"))||"";
+    autoSync();
   }catch(e){ toast("開唔到本機資料庫："+(e&&e.message||"")); }
   try{
     if(navigator.storage&&navigator.storage.persist){
