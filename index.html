@@ -128,6 +128,16 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
 .stats b{display:block;font-size:20px;color:var(--ink)}
 .remark{padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
 .remark .muted{display:block}
+.summary{padding:14px;border:1px solid var(--gold);border-radius:14px;background:var(--surface);margin:10px 0}
+.summary .head{font-size:15px;font-weight:700;line-height:1.45}
+.summary ul{margin:8px 0 0;padding-left:18px;font-size:13px;color:var(--muted);line-height:1.55}
+.targets{margin:10px 0}
+.targets .t{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.targets .t .cur{font-weight:700;text-align:right}
+.targets .t .goal{grid-column:1 / 3;font-size:12px;color:var(--muted)}
+.targets .t.ok .cur{color:var(--good)}
+.targets .t.ok .cur::before{content:"✓ "}
+.targets .t.no .cur{color:var(--bad)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(140px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9;max-width:90vw}
 .toast.show{opacity:1}
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
@@ -213,7 +223,7 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const APP_VERSION="v9";   // 同 sw.js 嘅 VERSION 一齊改
+const APP_VERSION="v10";   // 同 sw.js 嘅 VERSION 一齊改
 
 /* ================= 欄位定義（改呢度就改到個 form） ================= */
 const TAGS=["突破","心流","面對痛苦","逃避","新人","深度對話","靈感","好玩","攰","圓桌"];
@@ -441,13 +451,22 @@ async function renderResults(){
   const corr=c=>`<div class="corr"><b>${esc(c.input_label)}</b>${c.output_label&&c.output!=="flow_min"?` → ${esc(c.output_label)}`:""}${c.lag?"（隔日）":"（同日）"}<br><span class="muted">r = ${c.r.toFixed(2)}　n = ${c.n}　${esc(c.note)}</span></div>`;
   let html="";
 
-  // 1. 總覽：階段 + 記錄日數
+  // 1. Summary：一句講清楚而家咩狀態（engine 以最後一筆紀錄日為尾計）
+  if(r.summary){
+    html+=`<div class="summary"><div class="head">${esc(r.summary.headline)}</div>${(r.summary.bullets||[]).length?`<ul>${r.summary.bullets.map(b=>`<li>${esc(b)}</li>`).join("")}</ul>`:""}</div>`;
+  }
+  // 2. 接下來 7 日目標（由階段門檻 + 警報推導）
+  if(r.targets&&r.targets.length){
+    html+=`<h3>接下來 7 日目標</h3><div class="targets">`+r.targets.map(t=>`<div class="t ${t.ok?"ok":"no"}"><div>${esc(t.label)}</div><div class="cur">${esc(t.current)}</div><div class="goal">目標 ${esc(t.target)}${t.note?"　·　"+esc(t.note):""}</div></div>`).join("")+`</div>`;
+  }
+
+  // 3. 階段 + 記錄日數
   if(r.stage){
     const pct=Math.round((r.stage.progress||0)*100);
     html+=`<div class="stage"><b>${esc(r.stage.name)}</b><div class="track" style="margin:8px 0"><div class="fill" style="width:${pct}%"></div></div><div class="muted">${esc(r.stage.detail||"")}</div>
       <div class="stats"><span><b>${n}</b>已記錄日數</span><span><b>${r.streak??"–"}</b>連續日數</span></div></div>`;
   }
-  html+=`<p class="muted">Local 機分析時間：${esc(new Date(r.generated_at).toLocaleString("zh-HK",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}))}${(r.version||0)<3?"　（舊版結果，同步一次會更新）":""}</p>`;
+  html+=`<p class="muted">Local 機分析時間：${esc(new Date(r.generated_at).toLocaleString("zh-HK",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}))}${(r.version||0)<5?"　（舊版結果，同步一次會更新）":""}</p>`;
   // 斷檔提示：所有「7 日」數字都以最後一筆紀錄為尾，唔講清楚就會當成最新
   if((r.stale_days??0)>=2&&r.as_of){
     html+=`<div class="alert">數據截至 ${esc(r.as_of)}（${r.stale_days} 日前）。今日填一筆再同步，下面啲數字先會更新。</div>`;
@@ -490,20 +509,11 @@ async function renderResults(){
   if(r.flow_drivers&&r.flow_drivers.length) html+=`<h3>邊啲因素推動你入心流</h3>`+r.flow_drivers.map(corr).join("");
   if(r.correlations&&r.correlations.length) html+=`<h3>其他 input → 結果</h3>`+r.correlations.map(corr).join("");
 
-  // 8. 標籤同 remark
+  // 8. 標籤（remark 全文改喺 laptop 嘅 library 睇，手機唔再放）
   if(r.tags_30d&&Object.keys(r.tags_30d).length){
     html+=`<h3>標籤（30 日）</h3><div class="stats">${Object.entries(r.tags_30d).sort((a,b)=>b[1]-a[1]).map(([t,c])=>`<span><b>${c}</b>${esc(t)}</span>`).join("")}</div>`;
   }
-  if(r.remarks&&r.remarks.length){
-    html+=`<h3>最近嘅 remark</h3>`+r.remarks.map(x=>`<div class="remark"><span class="muted">${esc(x.date)}${x.tags&&x.tags.length?"　"+x.tags.map(esc).join("、"):""}</span>${x.note?`<div>${esc(x.note)}</div>`:""}${x.solved?`<div><b>解決：</b>${esc(x.solved)}</div>`:""}${x.found?`<div><b>新問題（已解決）：</b>${esc(x.found)}</div>`:""}</div>`).join("");
-  }
-  if(r.remark_themes&&r.remark_themes.length){
-    html+=`<h3>Remark 關鍵詞（同焦慮／心流嘅關係）</h3>`+r.remark_themes.slice(0,6).map(t=>{
-      const dax=t.d_anxiety==null?"":`焦慮 ${t.anxiety_on} vs 其他日 ${t.anxiety_off}（${t.d_anxiety>0?"+":""}${t.d_anxiety}）`;
-      const dfl=t.d_flow_h==null?"":`心流 ${t.flow_h_on} vs ${t.flow_h_off} 小時（${t.d_flow_h>0?"+":""}${t.d_flow_h}）`;
-      return `<div class="corr"><b>${esc(t.theme)}</b>　<span class="muted">${t.days} 日提到：${(t.words||[]).map(esc).join("、")}</span><br><span class="muted">${dax}${dax&&dfl?"　":""}${dfl}</span></div>`;
-    }).join("")+`<p class="muted">由 remark 文字數固定關鍵詞：本機規則、唔用 LLM、原文唔會離開 laptop。差異大嘅排前面。</p>`;
-  }
+  html+=`<p class="muted">Remark 全文同關鍵詞分析喺 laptop 睇：行 <code>python library.py</code> 會生成 <code>local/data/library.html</code>（可搜尋、按標籤篩選）。手機唔再保留 remark。</p>`;
   box.innerHTML=html;
 }
 
