@@ -213,7 +213,7 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const APP_VERSION="v7";   // 同 sw.js 嘅 VERSION 一齊改
+const APP_VERSION="v8";   // 同 sw.js 嘅 VERSION 一齊改
 
 /* ================= 欄位定義（改呢度就改到個 form） ================= */
 const TAGS=["突破","心流","面對痛苦","逃避","新人","深度對話","靈感","好玩","攰","圓桌"];
@@ -415,7 +415,12 @@ async function loadHistory(){
 $("save").onclick=async()=>{
   const entry=Object.assign({},state,{date:$("date").value,note:$("note").value.trim(),schema:2,updated_at:new Date().toISOString()});
   FIELDS.forEach(f=>{ if(f.noteKey) entry[f.noteKey]=entry[f.key]===2?(entry[f.noteKey]||"").trim():""; });
-  try{ await Entries.put(entry); toast("已提交"); await loadHistory(); renderSyncStatus(); autoSync(); }
+  try{
+    await Entries.put(entry);
+    await loadHistory(); renderSyncStatus();
+    const ok=await autoSync();   // 等同步完成先講，失敗即刻知
+    toast(ok===false?"已提交，但未同步到 laptop":ok?"已提交，已同步":"已提交");
+  }
   catch(e){ toast("儲存唔到：" + (e && e.message || "未知錯誤")); }
 };
 $("date").onchange=e=>loadDay(e.target.value);
@@ -443,6 +448,10 @@ async function renderResults(){
       <div class="stats"><span><b>${n}</b>已記錄日數</span><span><b>${r.streak??"–"}</b>連續日數</span></div></div>`;
   }
   html+=`<p class="muted">Local 機分析時間：${esc(new Date(r.generated_at).toLocaleString("zh-HK",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}))}${(r.version||0)<3?"　（舊版結果，同步一次會更新）":""}</p>`;
+  // 斷檔提示：所有「7 日」數字都以最後一筆紀錄為尾，唔講清楚就會當成最新
+  if((r.stale_days??0)>=2&&r.as_of){
+    html+=`<div class="alert">數據截至 ${esc(r.as_of)}（${r.stale_days} 日前）。今日填一筆再同步，下面啲數字先會更新。</div>`;
+  }
 
   // 2. 未夠數據嘅部分：用一個時間表講幾時解鎖，唔好每格都寫「要有至少 N 日」
   if(n<14){
@@ -454,8 +463,10 @@ async function renderResults(){
   if(r.alerts&&r.alerts.length){ html+=`<h3>警報</h3>`+r.alerts.map(a=>`<div class="alert">${esc(a)}</div>`).join(""); }
 
   // 4. 最近 7 日（第 1 日就有）
+  const md=s=>s?String(s).slice(5).replace("-","/"):"";
+  const wintxt=(ns.window_start&&ns.window_end)?`（${md(ns.window_start)}–${md(ns.window_end)}）`:"";
   const z=ns.zones_7d||{};
-  html+=`<h3>最近 7 日</h3><div class="stats">
+  html+=`<h3>最近 7 日${wintxt}</h3><div class="stats">
     <span><b>${has(ns.flow_min_7d)?"約 "+Math.round(ns.flow_min_7d/60):"–"}</b>心流小時</span>
     <span><b>${ns.solved_days_7d??"–"}</b>有解決問題（日）</span>
     <span><b>${ns.found_days_7d??"–"}</b>發現新問題（日）</span></div>
@@ -490,9 +501,21 @@ async function renderResults(){
 }
 
 /* ================= 同步 ================= */
+// 有幾多日紀錄未上到 laptop（updated_at 遲過上次成功同步）
+async function pendingCount(){
+  const last=await KV.get("last_sync"); const all=await Entries.all();
+  if(!last) return all.length;
+  return all.filter(e=>(e.updated_at||"")>last).length;
+}
 async function renderSyncStatus(){
   const last=await KV.get("last_sync"); const n=(await Entries.all()).length;
-  $("syncstatus").textContent=`手機上有 ${n} 日紀錄。`+(last?`上次同步：${new Date(last).toLocaleString("zh-HK")}`:"未同步過。");
+  const pend=await pendingCount(); const err=await KV.get("last_sync_error");
+  const days=last?Math.floor((Date.now()-new Date(last).getTime())/86400000):null;
+  let s=`手機上有 ${n} 日紀錄。`;
+  s+=pend?(days!==null&&days>=1?`其中 ${pend} 日未同步到 laptop（上次成功同步 ${days} 日前）。`:`${pend} 日未同步到 laptop。`):(last?"同 laptop 已經一致。":"");
+  s+=last?`上次成功同步：${new Date(last).toLocaleString("zh-HK")}。`:"未同步過。";
+  if(err) s+=`上次嘗試失敗：${err}（檢查 laptop server 同 Tailscale）。`;
+  $("syncstatus").textContent=s;
 }
 async function saveConn(){ await KV.set("server",$("server").value.trim().replace(/\/+$/,"")); await KV.set("token",$("token").value); }
 async function api(path,opts={}){
@@ -510,22 +533,38 @@ $("testconn").onclick=async()=>{
 };
 let syncing=false;
 async function doSync(quiet){
-  if(syncing) return; syncing=true;
+  if(syncing) return false; syncing=true;
   const btn=$("syncnow"); btn.disabled=true;
+  let ok=false;
   try{
     const entries=await Entries.all();
     const r=await api("/api/sync",{method:"POST",body:JSON.stringify({entries})});
     if(r.entries){ for(const e of r.entries){ const mine=await Entries.get(e.date); if(!mine||(e.updated_at||"")>(mine.updated_at||"")) await Entries.put(e); } await migrateAll(); }
     if(r.results) await KV.set("results",r.results);
-    await KV.set("last_sync",new Date().toISOString());
+    await KV.set("last_sync",new Date().toISOString()); await KV.set("last_sync_error","");
+    ok=true;
     if(!quiet) toast(`已同步 ${entries.length} 日紀錄`);
-    await loadHistory(); await renderSyncStatus(); await renderResults();
-  }catch(e){ if(!quiet) toast("同步失敗："+e.message); }
+    await loadHistory(); await renderResults();
+  }catch(e){
+    // 靜默失敗會令進度頁永遠停喺舊日期，所以一定要記住同顯示
+    await KV.set("last_sync_error",(e&&e.message)||"未知錯誤");
+    if(!quiet) toast("同步失敗："+e.message);
+  }
+  await renderSyncStatus();
   btn.disabled=false; syncing=false;
+  return ok;
 }
 $("syncnow").onclick=()=>doSync(false);
-// 開 app、返到前景、提交紀錄之後自動喺背景同步；連唔到就靜靜雞唔理，下次再試
-async function autoSync(){ if(await KV.get("server") && await KV.get("token")) doSync(true); }
+// 開 app、返到前景、提交紀錄之後自動喺背景同步。連唔到都試，但失敗會記低同講你知。
+async function autoSync(opts){
+  if(!(await KV.get("server")) || !(await KV.get("token"))) return null;
+  const ok=await doSync(true);
+  if(!ok && opts && opts.announce){
+    const pend=await pendingCount();
+    if(pend) toast(`${pend} 日紀錄未同步到 laptop（${(await KV.get("last_sync_error"))||"連唔到"}）`);
+  }
+  return ok;
+}
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") autoSync(); });
 $("export").onclick=async()=>{
   const entries=await Entries.all();
@@ -573,7 +612,7 @@ document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>showTab(b.datas
     if(migrated) toast(`已將 ${migrated} 日舊紀錄轉做新選項，記得同步`);
     await loadDay(today()); await loadHistory();
     $("server").value=(await KV.get("server"))||""; $("token").value=(await KV.get("token"))||"";
-    autoSync();
+    autoSync({announce:true});
   }catch(e){ toast("開唔到本機資料庫："+(e&&e.message||"")); }
   try{
     if(navigator.storage&&navigator.storage.persist){
