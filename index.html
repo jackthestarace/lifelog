@@ -213,7 +213,7 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const APP_VERSION="v8";   // 同 sw.js 嘅 VERSION 一齊改
+const APP_VERSION="v9";   // 同 sw.js 嘅 VERSION 一齊改
 
 /* ================= 欄位定義（改呢度就改到個 form） ================= */
 const TAGS=["突破","心流","面對痛苦","逃避","新人","深度對話","靈感","好玩","攰","圓桌"];
@@ -496,6 +496,13 @@ async function renderResults(){
   }
   if(r.remarks&&r.remarks.length){
     html+=`<h3>最近嘅 remark</h3>`+r.remarks.map(x=>`<div class="remark"><span class="muted">${esc(x.date)}${x.tags&&x.tags.length?"　"+x.tags.map(esc).join("、"):""}</span>${x.note?`<div>${esc(x.note)}</div>`:""}${x.solved?`<div><b>解決：</b>${esc(x.solved)}</div>`:""}${x.found?`<div><b>新問題（已解決）：</b>${esc(x.found)}</div>`:""}</div>`).join("");
+  }
+  if(r.remark_themes&&r.remark_themes.length){
+    html+=`<h3>Remark 關鍵詞（同焦慮／心流嘅關係）</h3>`+r.remark_themes.slice(0,6).map(t=>{
+      const dax=t.d_anxiety==null?"":`焦慮 ${t.anxiety_on} vs 其他日 ${t.anxiety_off}（${t.d_anxiety>0?"+":""}${t.d_anxiety}）`;
+      const dfl=t.d_flow_h==null?"":`心流 ${t.flow_h_on} vs ${t.flow_h_off} 小時（${t.d_flow_h>0?"+":""}${t.d_flow_h}）`;
+      return `<div class="corr"><b>${esc(t.theme)}</b>　<span class="muted">${t.days} 日提到：${(t.words||[]).map(esc).join("、")}</span><br><span class="muted">${dax}${dax&&dfl?"　":""}${dfl}</span></div>`;
+    }).join("")+`<p class="muted">由 remark 文字數固定關鍵詞：本機規則、唔用 LLM、原文唔會離開 laptop。差異大嘅排前面。</p>`;
   }
   box.innerHTML=html;
 }
