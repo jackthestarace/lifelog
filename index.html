@@ -112,7 +112,7 @@ h3{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:700}
 .bottom{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
 .submit{max-width:560px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:10px 16px}
 .submit .missing{font-size:13px;color:var(--muted);flex:1}
-nav{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr)}
+nav{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
 nav button{height:52px;border:0;background:none;color:var(--muted);font:inherit;font-size:14px;cursor:pointer}
 nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inset 0 2px 0 var(--gold)}
 [hidden]{display:none!important}
@@ -181,6 +181,12 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
     <div id="results"></div>
   </main>
 
+  <!-- 目標 -->
+  <main id="tab-goals" hidden>
+    <header><h1>目標</h1></header>
+    <div id="goals"></div>
+  </main>
+
   <!-- 同步 -->
   <main id="tab-sync" hidden>
     <header><h1>同步</h1></header>
@@ -217,16 +223,17 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
   <nav>
     <button type="button" data-tab="log" aria-current="page">紀錄</button>
     <button type="button" data-tab="progress">進度</button>
+    <button type="button" data-tab="goals">目標</button>
     <button type="button" data-tab="sync">同步</button>
   </nav>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const APP_VERSION="v10";   // 同 sw.js 嘅 VERSION 一齊改
+const APP_VERSION="v11";   // 同 sw.js 嘅 VERSION 一齊改
 
 /* ================= 欄位定義（改呢度就改到個 form） ================= */
-const TAGS=["突破","心流","面對痛苦","逃避","新人","深度對話","靈感","好玩","攰","圓桌"];
+const TAGS=["突破","心流","面對痛苦","逃避","新人","深度對話","靈感","好玩","攰","圓桌","主動開口","錯過機會","Cyber","Sax","Postman"];
 function zoneOf(c,s){ if(c==null||s==null) return null; if(c>=5&&s>=5&&Math.abs(c-s)<=2) return "flow"; if(c<=4&&s<=4) return "apathy"; return c>s?"anxiety":"boredom"; }
 const ZONES={flow:["心流區","挑戰同能力都高，而且差唔多。保持，下次加少少難度。"],anxiety:["焦慮區","挑戰高過能力。將問題拆細，或者先補一樣技能。"],boredom:["悶區","能力高過挑戰。加難度、加 deadline，或者搵更大嘅問題。"],apathy:["冷漠區","挑戰同能力都低。加新刺激，或者搵人一齊做。"]};
 // 時間選項：存 index（0–3）。同 engine.py 嘅 T4 / EX4 一致，改一邊要改埋另一邊。
@@ -444,6 +451,16 @@ function spark(series){
   const d=pts.map((p,i)=>(i?"L":"M")+xs(i).toFixed(1)+" "+ys(p.v).toFixed(1)).join(" ");
   return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="${w}" y1="${ys(50)}" y2="${ys(50)}" stroke="var(--line)" stroke-dasharray="4 4"/><path d="${d}" fill="none" stroke="var(--gold)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
 }
+// 所有目標集中喺「目標」tab：個人每週目標（標籤）+ 數據推導嘅 7 日目標
+async function renderGoals(){
+  const r=await KV.get("results"), box=$("goals");
+  if(!r){ box.innerHTML=`<p class="empty">未有分析結果。同步一次就會出現。</p>`; return; }
+  const list=ts=>`<div class="targets">`+ts.map(t=>`<div class="t ${t.ok?"ok":"no"}"><div>${esc(t.label)}</div><div class="cur">${esc(t.current)}</div><div class="goal">目標 ${esc(t.target)}${t.note?"　·　"+esc(t.note):""}</div></div>`).join("")+`</div>`;
+  let html="";
+  if(r.goals&&r.goals.length) html+=`<h3>我嘅每週目標</h3><p class="muted">喺紀錄頁剔對應標籤就會計（最近 7 日）。</p>`+list(r.goals);
+  if(r.targets&&r.targets.length) html+=`<h3>數據推導：接下來 7 日</h3>`+list(r.targets);
+  box.innerHTML=html||`<p class="empty">同步一次就會出現新目標。</p>`;
+}
 async function renderResults(){
   const r=await KV.get("results"); const box=$("results");
   if(!r){ box.innerHTML=`<p class="empty">未有分析結果。去「同步」將紀錄送去 local 機，佢計完之後結果會喺度出現。</p>`; return; }
@@ -454,10 +471,6 @@ async function renderResults(){
   // 1. Summary：一句講清楚而家咩狀態（engine 以最後一筆紀錄日為尾計）
   if(r.summary){
     html+=`<div class="summary"><div class="head">${esc(r.summary.headline)}</div>${(r.summary.bullets||[]).length?`<ul>${r.summary.bullets.map(b=>`<li>${esc(b)}</li>`).join("")}</ul>`:""}</div>`;
-  }
-  // 2. 接下來 7 日目標（由階段門檻 + 警報推導）
-  if(r.targets&&r.targets.length){
-    html+=`<h3>接下來 7 日目標</h3><div class="targets">`+r.targets.map(t=>`<div class="t ${t.ok?"ok":"no"}"><div>${esc(t.label)}</div><div class="cur">${esc(t.current)}</div><div class="goal">目標 ${esc(t.target)}${t.note?"　·　"+esc(t.note):""}</div></div>`).join("")+`</div>`;
   }
 
   // 3. 階段 + 記錄日數
@@ -561,7 +574,7 @@ async function doSync(quiet){
     await KV.set("last_sync",new Date().toISOString()); await KV.set("last_sync_error","");
     ok=true;
     if(!quiet) toast(`已同步 ${entries.length} 日紀錄`);
-    await loadHistory(); await renderResults();
+    await loadHistory(); await renderResults(); await renderGoals();
   }catch(e){
     // 靜默失敗會令進度頁永遠停喺舊日期，所以一定要記住同顯示
     await KV.set("last_sync_error",(e&&e.message)||"未知錯誤");
@@ -611,10 +624,11 @@ $("importfile").onchange=async e=>{
 
 /* ================= tabs ================= */
 function showTab(t){
-  ["log","progress","sync"].forEach(k=>$("tab-"+k).hidden=k!==t);
+  ["log","progress","goals","sync"].forEach(k=>$("tab-"+k).hidden=k!==t);
   document.querySelectorAll("nav button").forEach(b=>{ if(b.dataset.tab===t) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
   $("submitbar").hidden=t!=="log";
   if(t==="progress") renderResults();
+  if(t==="goals") renderGoals();
   if(t==="sync") renderSyncStatus();
   window.scrollTo({top:0});
 }
