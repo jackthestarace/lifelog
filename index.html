@@ -247,7 +247,7 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const APP_VERSION="v13";   // 同 sw.js 嘅 VERSION 一齊改
+const APP_VERSION="v14";   // 同 sw.js 嘅 VERSION 一齊改
 
 /* ================= 欄位定義（改呢度就改到個 form） ================= */
 const TAGS=["突破","心流","面對痛苦","逃避","新人","深度對話","靈感","好玩","攰","圓桌","主動開口","錯過機會","Cyber","Sax","Postman"];
@@ -463,6 +463,7 @@ async function analyzeMeal(slot,text,file,btn){
     const body={date:$("date").value,slot,text};
     if(file) body.image=await shrink(file);
     const r=await api("/api/meal",{method:"POST",body:JSON.stringify(body)});
+    if(!r.kcal) throw new Error(r.note||"認唔到食物，試下加文字描述");
     state.meals=Object.assign({},state.meals,{[slot]:{kcal:r.kcal,desc:text,items:r.items,note:r.note,src:file?"photo":"text",photo:r.photo||null}});
     await saveMeals(); refresh("meals"); toast(`${SLOTS.find(x=>x[0]===slot)[1]} ≈ ${r.kcal} kcal`);
   }catch(e){ toast("分析唔到："+e.message+"。可以直接手動填 kcal。"); btn.disabled=false; btn.textContent=old; }
