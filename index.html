@@ -205,6 +205,8 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
 
     <h2>飲食目標</h2>
     <div class="formrow"><label for="kcaltarget">每日 kcal 目標（健康台餐單）</label><input type="text" inputmode="numeric" pattern="[0-9]*" class="num" id="kcaltarget" placeholder="例如 1800"></div>
+    <div class="formrow"><label for="dskey">DeepSeek API key（逐餐估算用）</label><input type="password" id="dskey" autocomplete="off" placeholder="sk-..."></div>
+    <p class="muted">填咗就由手機直接估算，唔使 laptop 同 Tailscale。Key 只存喺呢部手機，唔會同步。食物文字同相片會送去 DeepSeek。</p>
 
     <h2>同步</h2>
     <p class="muted" id="syncstatus"></p>
@@ -247,7 +249,7 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const APP_VERSION="v14";   // 同 sw.js 嘅 VERSION 一齊改
+const APP_VERSION="v15";   // 同 sw.js 嘅 VERSION 一齊改
 
 /* ================= 欄位定義（改呢度就改到個 form） ================= */
 const TAGS=["突破","心流","面對痛苦","逃避","新人","深度對話","靈感","好玩","攰","圓桌","主動開口","錯過機會","Cyber","Sax","Postman"];
@@ -457,12 +459,36 @@ function shrink(file){
     img.src=url;
   });
 }
+// 手機直接 call DeepSeek（佢 CORS 放行 github.io），唔使 laptop／Tailscale。Key 只存喺手機 IndexedDB，唔同步、唔入 repo。
+// PROMPT 同 parse 同 local/meals.py 一致（冇 key 時仍然經 laptop /api/meal）。
+const MEAL_PROMPT=what=>`你係營養估算助手。用戶喺香港，講廣東話。根據佢呢一餐嘅${what}，估計大概熱量（唔使好準，常見份量即可）。
+只回覆一個 JSON，唔好其他文字：
+{"items":[{"name":"食物（繁體中文）","portion":"大概份量","kcal":整數}],"total_kcal":整數,"note":"一句（例如蛋白質夠唔夠、份量假設）"}`;
+function parseMeal(t){
+  const m=String(t).match(/\{[\s\S]*\}/); if(!m) throw new Error("AI 冇回傳 JSON");
+  const j=JSON.parse(m[0]);
+  const items=(j.items||[]).slice(0,12).map(i=>({name:String(i.name||"").slice(0,40),portion:String(i.portion||"").slice(0,40),kcal:Math.round(Number(i.kcal)||0)}));
+  const total=Math.round(Number(j.total_kcal)||items.reduce((a,i)=>a+i.kcal,0));
+  if(!(total>=0&&total<=5000)) throw new Error(`估算唔合理：${total} kcal`);
+  return {kcal:total,items,note:String(j.note||"").slice(0,120)};
+}
+async function deepseekMeal(key,slot,text,image){
+  const what=image?"相片"+(text?"同描述":""):"描述";
+  const prompt=MEAL_PROMPT(what)+(text?`\n用戶描述（${SLOTS.find(x=>x[0]===slot)[1]}）：${text}`:"");
+  const content=image?[{type:"text",text:prompt},{type:"image_url",image_url:{url:image}}]:prompt;
+  const res=await fetch("https://api.deepseek.com/chat/completions",{method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
+    body:JSON.stringify({model:"deepseek-flash",temperature:0.2,messages:[{role:"user",content}]})});
+  if(!res.ok){ let d=""; try{ d=(await res.json()).error.message; }catch(e){} throw new Error(`DeepSeek ${res.status} ${d}`); }
+  return parseMeal((await res.json()).choices[0].message.content);
+}
 async function analyzeMeal(slot,text,file,btn){
   btn.disabled=true; const old=btn.textContent; btn.textContent="分析中…";
   try{
     const body={date:$("date").value,slot,text};
     if(file) body.image=await shrink(file);
-    const r=await api("/api/meal",{method:"POST",body:JSON.stringify(body)});
+    const key=await KV.get("deepseek_key");
+    const r=key?await deepseekMeal(key,slot,text,body.image):await api("/api/meal",{method:"POST",body:JSON.stringify(body)});
     if(!r.kcal) throw new Error(r.note||"認唔到食物，試下加文字描述");
     state.meals=Object.assign({},state.meals,{[slot]:{kcal:r.kcal,desc:text,items:r.items,note:r.note,src:file?"photo":"text",photo:r.photo||null}});
     await saveMeals(); refresh("meals"); toast(`${SLOTS.find(x=>x[0]===slot)[1]} ≈ ${r.kcal} kcal`);
@@ -636,6 +662,7 @@ async function doSync(quiet){
   return ok;
 }
 $("syncnow").onclick=()=>doSync(false);
+$("dskey").onchange=async e=>{ await KV.set("deepseek_key",e.target.value.trim()); toast(e.target.value.trim()?"已儲存 DeepSeek key":"已刪除 DeepSeek key"); };
 $("kcaltarget").oninput=async e=>{ const d=e.target.value.replace(/[^0-9]/g,""); e.target.value=d; kcalTarget=d?Number(d):null; await KV.set("kcal_target",kcalTarget); refresh("meals"); };
 // 開 app、返到前景、提交紀錄之後自動喺背景同步。連唔到都試，但失敗會記低同講你知。
 async function autoSync(opts){
@@ -696,6 +723,7 @@ document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>showTab(b.datas
     await loadDay(today()); await loadHistory();
     $("server").value=(await KV.get("server"))||""; $("token").value=(await KV.get("token"))||"";
     kcalTarget=(await KV.get("kcal_target"))||null; $("kcaltarget").value=kcalTarget||""; renderForm();
+    $("dskey").value=(await KV.get("deepseek_key"))||"";
     autoSync({announce:true});
   }catch(e){ toast("開唔到本機資料庫："+(e&&e.message||"")); }
   try{
