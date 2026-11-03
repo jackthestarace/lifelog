@@ -249,7 +249,7 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const APP_VERSION="v15";   // 同 sw.js 嘅 VERSION 一齊改
+const APP_VERSION="v16";   // 同 sw.js 嘅 VERSION 一齊改
 
 /* ================= 欄位定義（改呢度就改到個 form） ================= */
 const TAGS=["突破","心流","面對痛苦","逃避","新人","深度對話","靈感","好玩","攰","圓桌","主動開口","錯過機會","Cyber","Sax","Postman"];
@@ -460,7 +460,7 @@ function shrink(file){
   });
 }
 // 手機直接 call DeepSeek（佢 CORS 放行 github.io），唔使 laptop／Tailscale。Key 只存喺手機 IndexedDB，唔同步、唔入 repo。
-// PROMPT 同 parse 同 local/meals.py 一致（冇 key 時仍然經 laptop /api/meal）。
+// PROMPT 同 parse 同 local/meals.py 一致。唔再 fallback 去 laptop：Tailscale 斷咗會等好耐，似「冇反應」。
 const MEAL_PROMPT=what=>`你係營養估算助手。用戶喺香港，講廣東話。根據佢呢一餐嘅${what}，估計大概熱量（唔使好準，常見份量即可）。
 只回覆一個 JSON，唔好其他文字：
 {"items":[{"name":"食物（繁體中文）","portion":"大概份量","kcal":整數}],"total_kcal":整數,"note":"一句（例如蛋白質夠唔夠、份量假設）"}`;
@@ -476,23 +476,31 @@ async function deepseekMeal(key,slot,text,image){
   const what=image?"相片"+(text?"同描述":""):"描述";
   const prompt=MEAL_PROMPT(what)+(text?`\n用戶描述（${SLOTS.find(x=>x[0]===slot)[1]}）：${text}`:"");
   const content=image?[{type:"text",text:prompt},{type:"image_url",image_url:{url:image}}]:prompt;
-  const res=await fetch("https://api.deepseek.com/chat/completions",{method:"POST",
+  const ac=new AbortController(), timer=setTimeout(()=>ac.abort(),60000);
+  const res=await fetch("https://api.deepseek.com/chat/completions",{method:"POST",signal:ac.signal,
     headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
     body:JSON.stringify({model:"deepseek-flash",temperature:0.2,messages:[{role:"user",content}]})});
   if(!res.ok){ let d=""; try{ d=(await res.json()).error.message; }catch(e){} throw new Error(`DeepSeek ${res.status} ${d}`); }
-  return parseMeal((await res.json()).choices[0].message.content);
+  const out=await res.json(); clearTimeout(timer);
+  return parseMeal(out.choices[0].message.content);
 }
-async function analyzeMeal(slot,text,file,btn){
-  btn.disabled=true; const old=btn.textContent; btn.textContent="分析中…";
+// 狀態寫喺該餐下面（唔用 toast：一閃就冇，似「冇反應」）
+async function analyzeMeal(slot,text,file,btn,stat){
+  const say=(t,bad)=>{ stat.textContent=t; stat.style.color=bad?"var(--bad)":""; stat.hidden=false; };
+  const key=await KV.get("deepseek_key");
+  if(!key){ say("未填 DeepSeek key：去「設定」貼上，再返嚟估算。",true); return; }
+  btn.disabled=true; const old=btn.textContent; btn.textContent="…";
+  say(file?"上載相片、分析中（大約 5–20 秒）…":"分析中（大約 5 秒）…");
   try{
-    const body={date:$("date").value,slot,text};
-    if(file) body.image=await shrink(file);
-    const key=await KV.get("deepseek_key");
-    const r=key?await deepseekMeal(key,slot,text,body.image):await api("/api/meal",{method:"POST",body:JSON.stringify(body)});
+    const image=file?await shrink(file):null;
+    const r=await deepseekMeal(key,slot,text,image);
     if(!r.kcal) throw new Error(r.note||"認唔到食物，試下加文字描述");
-    state.meals=Object.assign({},state.meals,{[slot]:{kcal:r.kcal,desc:text,items:r.items,note:r.note,src:file?"photo":"text",photo:r.photo||null}});
+    state.meals=Object.assign({},state.meals,{[slot]:{kcal:r.kcal,desc:text,items:r.items,note:r.note,src:file?"photo":"text",photo:null}});
     await saveMeals(); refresh("meals"); toast(`${SLOTS.find(x=>x[0]===slot)[1]} ≈ ${r.kcal} kcal`);
-  }catch(e){ toast("分析唔到："+e.message+"。可以直接手動填 kcal。"); btn.disabled=false; btn.textContent=old; }
+  }catch(e){
+    const msg=e.name==="AbortError"?"60 秒都未有回應，檢查網絡再試":/401/.test(e.message)?"DeepSeek key 唔啱，去「設定」重新貼":/402/.test(e.message)?"DeepSeek 餘額不足":e.message;
+    say("分析唔到："+msg,true); btn.disabled=false; btn.textContent=old;
+  }
 }
 function renderMeals(){
   const m=state.meals||{}, box=document.createElement("div");
@@ -503,15 +511,18 @@ function renderMeals(){
       <div class="mrow"><input type="text" placeholder="食咗咩（例如：叉燒飯、凍檸茶少甜）" aria-label="${name}食咗咩" value="${esc(x.desc||"")}">
       <button type="button">估算</button><button type="button" aria-label="${name}影相估算">📷</button></div>
       <input type="file" accept="image/*" hidden>
+      <div class="mdesc mstat" role="status" hidden></div>
       ${items||x.note?`<div class="mdesc">${esc(items)}${x.note?`<br>${esc(x.note)}`:""}</div>`:""}`;
-    const [kc,desc]=row.querySelectorAll("input[type=text]"), [bt,bp]=row.querySelectorAll("button"), fi=row.querySelector("input[type=file]");
+    const [kc,desc]=row.querySelectorAll("input[type=text]"), [bt,bp]=row.querySelectorAll("button"), fi=row.querySelector("input[type=file]"), st=row.querySelector(".mstat");
     kc.oninput=()=>{ const d=kc.value.replace(/[^0-9]/g,""); kc.value=d; };
     kc.onchange=async()=>{ const v=kc.value===""?null:Number(kc.value);
       state.meals=Object.assign({},state.meals,{[slot]:Object.assign({},x,{kcal:v,src:x.src||"manual"})}); await saveMeals(); refresh("meals"); };
     desc.oninput=()=>{ x.desc=desc.value; };
-    bt.onclick=()=>{ if(!desc.value.trim()){ toast("先寫低食咗咩"); return; } analyzeMeal(slot,desc.value.trim(),null,bt); };
+    const go=()=>{ if(!desc.value.trim()){ st.textContent="先寫低食咗咩，或者撳 📷 影相"; st.hidden=false; return; } analyzeMeal(slot,desc.value.trim(),null,bt,st); };
+    bt.onclick=go;
+    desc.enterKeyHint="go"; desc.onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault(); desc.blur(); go(); } };
     bp.onclick=()=>fi.click();
-    fi.onchange=()=>{ const f=fi.files[0]; fi.value=""; if(f) analyzeMeal(slot,desc.value.trim(),f,bp); };
+    fi.onchange=()=>{ const f=fi.files[0]; fi.value=""; if(f) analyzeMeal(slot,desc.value.trim(),f,bp,st); };
     box.appendChild(row);
   });
   const t=document.createElement("div"); t.className="mtotal"; t.textContent=`今日大概 ${state.kcal??mealsTotal(m)??0} kcal`;
@@ -662,6 +673,7 @@ async function doSync(quiet){
   return ok;
 }
 $("syncnow").onclick=()=>doSync(false);
+$("dskey").oninput=e=>KV.set("deepseek_key",e.target.value.trim());  // iPhone 貼完直接轉 tab 都唔會漏存
 $("dskey").onchange=async e=>{ await KV.set("deepseek_key",e.target.value.trim()); toast(e.target.value.trim()?"已儲存 DeepSeek key":"已刪除 DeepSeek key"); };
 $("kcaltarget").oninput=async e=>{ const d=e.target.value.replace(/[^0-9]/g,""); e.target.value=d; kcalTarget=d?Number(d):null; await KV.set("kcal_target",kcalTarget); refresh("meals"); };
 // 開 app、返到前景、提交紀錄之後自動喺背景同步。連唔到都試，但失敗會記低同講你知。
