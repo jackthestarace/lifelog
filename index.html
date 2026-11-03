@@ -66,7 +66,6 @@ section.dim{display:grid;grid-template-columns:48px 1fr;gap:0 12px;padding:18px 
 .opts button[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:var(--sel-ink);font-weight:700}
 textarea.subnote{min-height:48px;margin-top:8px}
 input.num{font:inherit;font-size:18px;font-weight:700;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-height:44px;width:160px}
-.row .sm{font-size:12px}
 .ends{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px}
 input[type=time]{font:inherit;font-size:18px;font-weight:700;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-height:44px}
 textarea{width:100%;min-height:72px;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px}
@@ -74,9 +73,6 @@ textarea{width:100%;min-height:72px;font:inherit;color:var(--ink);background:var
 button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 h2{font-family:"Noto Serif TC",serif;font-weight:900;font-size:22px;margin:28px 0 10px}
 h3{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:700}
-.row{display:grid;grid-template-columns:92px repeat(4,1fr);align-items:center;padding:10px 0;border:0;border-bottom:1px solid var(--line);font-size:14px;cursor:pointer;background:none;width:100%;color:var(--ink);font-family:inherit;text-align:left}
-.row.head{cursor:default;color:var(--muted);font-size:12px}
-.row span:not(:first-child){text-align:center}
 .empty{color:var(--muted);font-size:14px;padding:14px 0}
 .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
 .ghost{min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;cursor:pointer}
@@ -134,10 +130,18 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
 .targets{margin:10px 0}
 .targets .t{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
 .targets .t .cur{font-weight:700;text-align:right}
-.targets .t .goal{grid-column:1 / 3;font-size:12px;color:var(--muted)}
+.targets .t .tg{grid-column:1 / 3;font-size:12px;color:var(--muted)}
 .targets .t.ok .cur{color:var(--good)}
 .targets .t.ok .cur::before{content:"✓ "}
 .targets .t.no .cur{color:var(--bad)}
+.goal{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.goal .gl{font-weight:700}
+.goal .gs{grid-column:1;font-size:13px;color:var(--muted)}
+.goal button{grid-row:1 / 3;grid-column:2;min-width:96px;min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;font-size:14px;cursor:pointer}
+.goal button[aria-pressed="true"]{background:var(--good);border-color:var(--good);color:var(--sel-ink);font-weight:700}
+.goal .track{grid-column:1 / 3;height:6px}
+.goal .fill.ok{background:var(--good)}
+.kcalnote{font-size:13px;color:var(--muted);margin-top:6px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(140px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9;max-width:90vw}
 .toast.show{opacity:1}
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
@@ -171,8 +175,6 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
         </div>
       </div>
     </section>
-    <h2>過去紀錄</h2>
-    <div id="history"></div>
   </main>
 
   <!-- 進度 -->
@@ -187,12 +189,17 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
     <div id="goals"></div>
   </main>
 
-  <!-- 同步 -->
-  <main id="tab-sync" hidden>
-    <header><h1>同步</h1></header>
+  <!-- 設定 -->
+  <main id="tab-settings" hidden>
+    <header><h1>設定</h1></header>
+
+    <h2>飲食目標</h2>
+    <div class="formrow"><label for="kcaltarget">每日 kcal 目標（健康台餐單）</label><input type="text" inputmode="numeric" pattern="[0-9]*" class="num" id="kcaltarget" placeholder="例如 1800"></div>
+
+    <h2>同步</h2>
     <p class="muted" id="syncstatus"></p>
 
-    <h2>直接同步到 local 機</h2>
+    <h3>直接同步到 local 機</h3>
     <p class="muted">手機同 laptop 都開咗 Tailscale、laptop 行緊 server 先用得。會上載所有紀錄，再攞返最新分析結果。</p>
     <div class="formrow"><label for="server">Server 地址</label><input type="url" id="server" placeholder="https://kl.xxxx.ts.net" autocomplete="off"></div>
     <div class="formrow"><label for="token">同步密碼</label><input type="password" id="token" autocomplete="off"></div>
@@ -201,7 +208,7 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
       <button class="ghost" id="testconn" type="button">測試連線</button>
     </div>
 
-    <h2>用檔案同步</h2>
+    <h3>用檔案同步</h3>
     <p class="muted">唔使設定網絡。匯出嘅檔案存入 iCloud Drive 或 OneDrive 嘅 LifeLog 資料夾，laptop 處理完會喺同一個資料夾放一個結果檔，再喺度匯入。</p>
     <div class="btns">
       <button class="ghost" id="export" type="button">匯出紀錄</button>
@@ -224,13 +231,13 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
     <button type="button" data-tab="log" aria-current="page">紀錄</button>
     <button type="button" data-tab="progress">進度</button>
     <button type="button" data-tab="goals">目標</button>
-    <button type="button" data-tab="sync">同步</button>
+    <button type="button" data-tab="settings">設定</button>
   </nav>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const APP_VERSION="v11";   // 同 sw.js 嘅 VERSION 一齊改
+const APP_VERSION="v12";   // 同 sw.js 嘅 VERSION 一齊改
 
 /* ================= 欄位定義（改呢度就改到個 form） ================= */
 const TAGS=["突破","心流","面對痛苦","逃避","新人","深度對話","靈感","好玩","攰","圓桌","主動開口","錯過機會","Cyber","Sax","Postman"];
@@ -243,7 +250,8 @@ const S3=["沒有","有","已解決"];
 const DIMS = {
   flow:{glyph:"流",name:"心流（北極星）"},
   body:{glyph:"身",name:"身體"}, wealth:{glyph:"財",name:"財富"}, rel:{glyph:"關",name:"關係"},
-  craft:{glyph:"創",name:"事業／創造"}, mind:{glyph:"心",name:"精神"}
+  craft:{glyph:"創",name:"事業／創造"}, mind:{glyph:"心",name:"精神"},
+  food:{glyph:"食",name:"飲食"}
 };
 const FIELDS = [
   {dim:"flow",key:"flow_band",label:"今日完全投入、唔覺時間過嘅時間",type:"choice",opts:T4,kind:"star"},
@@ -262,7 +270,16 @@ const FIELDS = [
   {dim:"rel",key:"initiate",label:"主動發起（約人／follow-up）",type:"step",step:1,kind:"in"},
   {dim:"craft",key:"deep_band",label:"Deep work 時間",type:"choice",opts:T4,kind:"in"},
   {dim:"mind",key:"meaning",label:"意義感",type:"scale",kind:"out",lo:"空虛",hi:"好有意義"},
-  {dim:"mind",key:"anxiety",label:"焦慮",type:"scale",kind:"out",rev:true,lo:"平靜",hi:"好焦慮"}
+  {dim:"mind",key:"anxiety",label:"焦慮",type:"scale",kind:"out",rev:true,lo:"平靜",hi:"好焦慮"},
+  {dim:"food",key:"kcal",label:"今日吸收 kcal（抄健康台）",type:"num",kind:"in",ph:"例如 1750"},
+  {dim:"food",key:"water_ml",label:"喝水量",unit:"ml",type:"step",step:250,kind:"in"}
+];
+// 每週目標：同 engine.py 嘅 GOALS 一致（標籤、7 日最少日數）。step = 今日做咩先算「做咗」。
+const GOALS=[
+  {tag:"主動開口",label:"主動同女仔開口",need:3,step:"主動同 1 個人開口"},
+  {tag:"Sax",label:"Saxophone 練習",need:3,step:"練 20 分鐘"},
+  {tag:"Cyber",label:"Cyber security",need:2,step:"做 1 個 lab／30 分鐘"},
+  {tag:"Postman",label:"Postman API",need:2,step:"砌 1 個 request／30 分鐘"}
 ];
 
 /* ================= IndexedDB ================= */
@@ -387,8 +404,10 @@ function renderField(f){
   }else if(f.type==="num"){
     const i=document.createElement("input"); i.type="text"; i.inputMode="numeric"; i.pattern="[0-9]*"; i.className="num"; i.placeholder=f.ph||"";
     i.value=v==null?"":v; i.setAttribute("aria-labelledby","l_"+f.key);
-    i.oninput=()=>{ const d=i.value.replace(/[^0-9]/g,""); if(d!==i.value) i.value=d; state[f.key]=d===""?null:Number(d); updateMissing(); };
-    el.appendChild(i);
+    const k=f.key==="kcal"?document.createElement("div"):null;
+    if(k){ k.className="kcalnote"; kcalNote(k); }
+    i.oninput=()=>{ const d=i.value.replace(/[^0-9]/g,""); if(d!==i.value) i.value=d; state[f.key]=d===""?null:Number(d); updateMissing(); if(k) kcalNote(k); };
+    el.appendChild(i); if(k) el.appendChild(k);
   }else if(f.type==="time"){
     const i=document.createElement("input"); i.type="time"; i.value=v||""; i.setAttribute("aria-labelledby","l_"+f.key);
     i.onchange=()=>{ state[f.key]=i.value||null; updateMissing(); }; el.appendChild(i);
@@ -396,6 +415,13 @@ function renderField(f){
   if(f.key==="skill"){ const z=zoneOf(state.challenge,state.skill);
     if(z){ const n=document.createElement("div"); n.className="zone"; n.innerHTML=`<b>${ZONES[z][0]}</b>${ZONES[z][1]}`; el.appendChild(n); } }
   return el;
+}
+let kcalTarget=null;
+function kcalNote(el){
+  if(!kcalTarget){ el.textContent="去「設定」填每日 kcal 目標，就會計剩幾多。"; return; }
+  const v=state.kcal; if(v==null){ el.textContent=`目標 ${kcalTarget} kcal`; return; }
+  const d=kcalTarget-v; el.textContent=d>=0?`目標 ${kcalTarget}，仲剩 ${d} kcal`:`目標 ${kcalTarget}，超出 ${-d} kcal`;
+  el.style.color=d>=0?"":"var(--bad)";
 }
 function refresh(key){
   const keys = key==="challenge" ? ["challenge","skill"] : [key];
@@ -412,18 +438,9 @@ async function loadDay(date){
   $("note").value=(e&&e.note)||"";
   renderForm();
 }
+// 過去紀錄唔再列出（改舊日子用頂部日期揀；詳細喺 laptop admin portal 睇），呢度只計連續日數
 async function loadHistory(){
-  history=(await Entries.all()).sort((a,b)=>b.date.localeCompare(a.date));
-  const box=$("history");
-  if(!history.length){ box.innerHTML=`<div class="empty">第一筆紀錄提交咗之後會喺度出現。</div>`; $("streak").textContent="0"; return; }
-  const dash=v=>(v===null||v===undefined)?"–":v;
-  box.innerHTML=`<div class="row head"><span>日期</span><span>心流</span><span>精力</span><span>意義</span><span>焦慮</span></div>`;
-  history.slice(0,30).forEach(r=>{
-    const b=document.createElement("button"); b.type="button"; b.className="row";
-    b.innerHTML=`<span>${r.date.slice(5)}</span><span class="sm">${r.flow_band==null?"–":T4[r.flow_band]}</span><span>${dash(r.energy)}</span><span>${dash(r.meaning)}</span><span>${dash(r.anxiety)}</span>`;
-    b.onclick=()=>{ $("date").value=r.date; loadDay(r.date); window.scrollTo({top:0}); };
-    box.appendChild(b);
-  });
+  history=await Entries.all();
   const dates=new Set(history.map(r=>r.date)); let n=0; const d=new Date();
   if(!dates.has(fmt(d))) d.setDate(d.getDate()-1);
   while(dates.has(fmt(d))){ n++; d.setDate(d.getDate()-1); }
@@ -443,90 +460,53 @@ $("save").onclick=async()=>{
 $("date").onchange=e=>loadDay(e.target.value);
 
 /* ================= 進度（顯示 local 機結果） ================= */
-const DIM_ORDER=["body","wealth","rel","craft","mind"];
-function spark(series){
-  const pts=series.filter(p=>p.v!==null&&p.v!==undefined);
-  if(pts.length<2) return "";
-  const w=300,h=60; const xs=i=>i/(pts.length-1)*w; const ys=v=>h-(v/100)*h;
-  const d=pts.map((p,i)=>(i?"L":"M")+xs(i).toFixed(1)+" "+ys(p.v).toFixed(1)).join(" ");
-  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="${w}" y1="${ys(50)}" y2="${ys(50)}" stroke="var(--line)" stroke-dasharray="4 4"/><path d="${d}" fill="none" stroke="var(--gold)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
+// 目標 tab：上半＝每週目標嘅「今日一步」（撳一下＝今日紀錄加對應標籤，本機即時計 7 日進度，唔使等同步）
+//            下半＝laptop 數據推導嘅 7 日目標
+async function toggleGoal(tag){
+  const d=today(), e=(await Entries.get(d))||{date:d,schema:2,tags:[]};
+  const cur=new Set(e.tags||[]); cur.has(tag)?cur.delete(tag):cur.add(tag);
+  e.tags=[...cur]; e.updated_at=new Date().toISOString();
+  await Entries.put(e);
+  if($("date").value===d){ state.tags=[...cur]; renderTags(); }
+  await loadHistory(); await renderGoals(); autoSync();
 }
-// 所有目標集中喺「目標」tab：個人每週目標（標籤）+ 數據推導嘅 7 日目標
 async function renderGoals(){
-  const r=await KV.get("results"), box=$("goals");
-  if(!r){ box.innerHTML=`<p class="empty">未有分析結果。同步一次就會出現。</p>`; return; }
-  const list=ts=>`<div class="targets">`+ts.map(t=>`<div class="t ${t.ok?"ok":"no"}"><div>${esc(t.label)}</div><div class="cur">${esc(t.current)}</div><div class="goal">目標 ${esc(t.target)}${t.note?"　·　"+esc(t.note):""}</div></div>`).join("")+`</div>`;
-  let html="";
-  if(r.goals&&r.goals.length) html+=`<h3>我嘅每週目標</h3><p class="muted">喺紀錄頁剔對應標籤就會計（最近 7 日）。</p>`+list(r.goals);
-  if(r.targets&&r.targets.length) html+=`<h3>數據推導：接下來 7 日</h3>`+list(r.targets);
-  box.innerHTML=html||`<p class="empty">同步一次就會出現新目標。</p>`;
+  const box=$("goals"), all=await Entries.all(), t=today();
+  const lo=new Date(); lo.setDate(lo.getDate()-6); const from=fmt(lo);
+  const week=all.filter(e=>e.date>=from&&e.date<=t);
+  const todayTags=new Set((all.find(e=>e.date===t)||{}).tags||[]);
+  let html=`<h3>今日一步</h3><p class="muted">做完就撳「做咗」，會自動加標籤。進度係最近 7 日（${from.slice(5)}–${t.slice(5)}）。</p>`;
+  GOALS.forEach(g=>{
+    const n=week.filter(e=>(e.tags||[]).includes(g.tag)).length, ok=n>=g.need, on=todayTags.has(g.tag);
+    const left=ok?"今週已達標":`仲差 ${g.need-n} 日`;
+    html+=`<div class="goal"><div class="gl">${esc(g.label)}　<span class="muted">${n}／${g.need} 日 · ${left}</span></div>
+      <div class="gs">今日：${esc(g.step)}</div>
+      <button type="button" data-tag="${esc(g.tag)}" aria-pressed="${on}">${on?"✓ 做咗":"做咗"}</button>
+      <div class="track"><div class="fill ${ok?"ok":""}" style="width:${Math.min(100,n/g.need*100)}%"></div></div></div>`;
+  });
+  const r=await KV.get("results");
+  if(r&&r.targets&&r.targets.length){
+    html+=`<h3>數據推導：接下來 7 日</h3><div class="targets">`+r.targets.map(x=>`<div class="t ${x.ok?"ok":"no"}"><div>${esc(x.label)}</div><div class="cur">${esc(x.current)}</div><div class="tg">目標 ${esc(x.target)}${x.note?"　·　"+esc(x.note):""}</div></div>`).join("")+`</div>`;
+  }
+  box.innerHTML=html;
+  box.querySelectorAll("button[data-tag]").forEach(b=>b.onclick=()=>toggleGoal(b.dataset.tag));
 }
+// 手機只放快速 summary；階段、維度、相關性、圖表搬咗去 laptop admin portal（python library.py --open）
 async function renderResults(){
   const r=await KV.get("results"); const box=$("results");
-  if(!r){ box.innerHTML=`<p class="empty">未有分析結果。去「同步」將紀錄送去 local 機，佢計完之後結果會喺度出現。</p>`; return; }
-  const has=v=>v!==null&&v!==undefined, n=r.days_logged||0, ns=r.north_star||{};
-  const corr=c=>`<div class="corr"><b>${esc(c.input_label)}</b>${c.output_label&&c.output!=="flow_min"?` → ${esc(c.output_label)}`:""}${c.lag?"（隔日）":"（同日）"}<br><span class="muted">r = ${c.r.toFixed(2)}　n = ${c.n}　${esc(c.note)}</span></div>`;
+  if(!r){ box.innerHTML=`<p class="empty">未有分析結果。去「設定」同步一次就會出現。</p>`; return; }
+  const ns=r.north_star||{}, f=r.food||{}, has=v=>v!==null&&v!==undefined;
   let html="";
-
-  // 1. Summary：一句講清楚而家咩狀態（engine 以最後一筆紀錄日為尾計）
-  if(r.summary){
-    html+=`<div class="summary"><div class="head">${esc(r.summary.headline)}</div>${(r.summary.bullets||[]).length?`<ul>${r.summary.bullets.map(b=>`<li>${esc(b)}</li>`).join("")}</ul>`:""}</div>`;
-  }
-
-  // 3. 階段 + 記錄日數
-  if(r.stage){
-    const pct=Math.round((r.stage.progress||0)*100);
-    html+=`<div class="stage"><b>${esc(r.stage.name)}</b><div class="track" style="margin:8px 0"><div class="fill" style="width:${pct}%"></div></div><div class="muted">${esc(r.stage.detail||"")}</div>
-      <div class="stats"><span><b>${n}</b>已記錄日數</span><span><b>${r.streak??"–"}</b>連續日數</span></div></div>`;
-  }
-  html+=`<p class="muted">Local 機分析時間：${esc(new Date(r.generated_at).toLocaleString("zh-HK",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}))}${(r.version||0)<5?"　（舊版結果，同步一次會更新）":""}</p>`;
-  // 斷檔提示：所有「7 日」數字都以最後一筆紀錄為尾，唔講清楚就會當成最新
-  if((r.stale_days??0)>=2&&r.as_of){
-    html+=`<div class="alert">數據截至 ${esc(r.as_of)}（${r.stale_days} 日前）。今日填一筆再同步，下面啲數字先會更新。</div>`;
-  }
-
-  // 2. 未夠數據嘅部分：用一個時間表講幾時解鎖，唔好每格都寫「要有至少 N 日」
-  if(n<14){
-    const miles=[[1,"開始記錄"],[7,"出分數：北極星同約束維度"],[10,"出相關性：邊啲因素推動你入心流"],[14,"Stage 0 完成，進入 Stage 1"]];
-    html+=`<h3>數據解鎖</h3><div class="miles">`+miles.map(([d,t])=>`<div class="${n>=d?"done":""}"><span>${n>=d?"✓":"第 "+d+" 日"}</span>${t}${n<d?`<small>仲差 ${d-n} 日</small>`:""}</div>`).join("")+`</div>`;
-  }
-
-  // 3. 警報（要行動嘅放前面）
-  if(r.alerts&&r.alerts.length){ html+=`<h3>警報</h3>`+r.alerts.map(a=>`<div class="alert">${esc(a)}</div>`).join(""); }
-
-  // 4. 最近 7 日（第 1 日就有）
-  const md=s=>s?String(s).slice(5).replace("-","/"):"";
-  const wintxt=(ns.window_start&&ns.window_end)?`（${md(ns.window_start)}–${md(ns.window_end)}）`:"";
-  const z=ns.zones_7d||{};
-  html+=`<h3>最近 7 日${wintxt}</h3><div class="stats">
-    <span><b>${has(ns.flow_min_7d)?"約 "+Math.round(ns.flow_min_7d/60):"–"}</b>心流小時</span>
-    <span><b>${ns.solved_days_7d??"–"}</b>有解決問題（日）</span>
-    <span><b>${ns.found_days_7d??"–"}</b>發現新問題（日）</span></div>
-    <div class="zonegrid">${["心流","焦慮","悶","冷漠"].map(k=>`<div><b>${z[k]||0}</b>${k}區</div>`).join("")}</div>`;
-
-  // 5. 北極星分數（第 7 日先有）
-  if(has(ns.score7)){
-    html+=`<h3>北極星：心流分數（7 日）</h3><div class="index"><b>${Math.round(ns.score7)}</b><span class="muted">50 = 你自己嘅 baseline</span></div>${spark(ns.series||[])}`;
-  }
-
-  // 6. 約束維度（有分數先顯示）
-  if(r.dims&&DIM_ORDER.some(k=>r.dims[k]&&has(r.dims[k].score7))){
-    html+=`<h3>約束維度（7 日平均，底線 ${r.floor||40}）</h3>`;
-    DIM_ORDER.forEach(k=>{ const d=r.dims[k]; if(!d) return; const v=d.score7, ok=has(v), low=ok&&v<(r.floor||40);
-      html+=`<div class="dimbar"><span class="g" aria-label="${DIMS[k].name}">${DIMS[k].glyph}</span><div class="track"><div class="fill ${low?"low":""}" style="width:${ok?Math.max(2,Math.min(100,v)):0}%"></div></div><span class="v">${ok?Math.round(v):"–"}</span>${d.drawdown>0.2?`<span class="dd">由高位跌咗 ${Math.round(d.drawdown*100)}%</span>`:""}</div>`;
-    });
-    html+=`<p class="muted">${ns.constraints_ok?"所有約束維度都喺底線以上。":"有約束維度跌穿底線，睇上面警報。"}呢啲維度唔係目標，係支撐心流嘅約束。</p>`;
-  }
-
-  // 7. 相關性（第 10 日先有）
-  if(r.flow_drivers&&r.flow_drivers.length) html+=`<h3>邊啲因素推動你入心流</h3>`+r.flow_drivers.map(corr).join("");
-  if(r.correlations&&r.correlations.length) html+=`<h3>其他 input → 結果</h3>`+r.correlations.map(corr).join("");
-
-  // 8. 標籤（remark 全文改喺 laptop 嘅 library 睇，手機唔再放）
-  if(r.tags_30d&&Object.keys(r.tags_30d).length){
-    html+=`<h3>標籤（30 日）</h3><div class="stats">${Object.entries(r.tags_30d).sort((a,b)=>b[1]-a[1]).map(([t,c])=>`<span><b>${c}</b>${esc(t)}</span>`).join("")}</div>`;
-  }
-  html+=`<p class="muted">Remark 全文同關鍵詞分析喺 laptop 睇：行 <code>python library.py</code> 會生成 <code>local/data/library.html</code>（可搜尋、按標籤篩選）。手機唔再保留 remark。</p>`;
+  if((r.stale_days??0)>=2&&r.as_of) html+=`<div class="alert">數據截至 ${esc(r.as_of)}（${r.stale_days} 日前）。今日填一筆再同步先會更新。</div>`;
+  if(r.summary) html+=`<div class="summary"><div class="head">${esc(r.summary.headline)}</div>${(r.summary.bullets||[]).length?`<ul>${r.summary.bullets.map(b=>`<li>${esc(b)}</li>`).join("")}</ul>`:""}</div>`;
+  const kc=has(f.kcal_avg_7d)?Math.round(f.kcal_avg_7d):null;
+  html+=`<div class="stats">
+    <span><b>${has(ns.flow_min_7d)?(ns.flow_min_7d/60).toFixed(1):"–"}</b>心流小時（7 日）</span>
+    <span><b>${ns.flow_days_7d??"–"}</b>心流區日數</span>
+    <span><b>${kc??"–"}</b>平均 kcal${kcalTarget&&kc!=null?`（目標 ${kcalTarget}）`:""}</span>
+    <span><b>${has(f.water_avg_7d)?(f.water_avg_7d/1000).toFixed(1):"–"}</b>平均喝水（公升）</span></div>`;
+  if(r.alerts&&r.alerts.length) html+=r.alerts.slice(0,2).map(a=>`<div class="alert">${esc(a)}</div>`).join("");
+  html+=`<p class="muted">分析時間：${esc(new Date(r.generated_at).toLocaleString("zh-HK",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}))}。詳細進度同圖表喺 laptop：<code>python library.py --open</code></p>`;
   box.innerHTML=html;
 }
 
@@ -585,6 +565,7 @@ async function doSync(quiet){
   return ok;
 }
 $("syncnow").onclick=()=>doSync(false);
+$("kcaltarget").oninput=async e=>{ const d=e.target.value.replace(/[^0-9]/g,""); e.target.value=d; kcalTarget=d?Number(d):null; await KV.set("kcal_target",kcalTarget); refresh("kcal"); };
 // 開 app、返到前景、提交紀錄之後自動喺背景同步。連唔到都試，但失敗會記低同講你知。
 async function autoSync(opts){
   if(!(await KV.get("server")) || !(await KV.get("token"))) return null;
@@ -624,12 +605,12 @@ $("importfile").onchange=async e=>{
 
 /* ================= tabs ================= */
 function showTab(t){
-  ["log","progress","goals","sync"].forEach(k=>$("tab-"+k).hidden=k!==t);
+  ["log","progress","goals","settings"].forEach(k=>$("tab-"+k).hidden=k!==t);
   document.querySelectorAll("nav button").forEach(b=>{ if(b.dataset.tab===t) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
   $("submitbar").hidden=t!=="log";
   if(t==="progress") renderResults();
   if(t==="goals") renderGoals();
-  if(t==="sync") renderSyncStatus();
+  if(t==="settings") renderSyncStatus();
   window.scrollTo({top:0});
 }
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
@@ -643,6 +624,7 @@ document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>showTab(b.datas
     if(migrated) toast(`已將 ${migrated} 日舊紀錄轉做新選項，記得同步`);
     await loadDay(today()); await loadHistory();
     $("server").value=(await KV.get("server"))||""; $("token").value=(await KV.get("token"))||"";
+    kcalTarget=(await KV.get("kcal_target"))||null; $("kcaltarget").value=kcalTarget||""; renderForm();
     autoSync({announce:true});
   }catch(e){ toast("開唔到本機資料庫："+(e&&e.message||"")); }
   try{
