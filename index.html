@@ -108,7 +108,7 @@ h3{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:700}
 .bottom{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
 .submit{max-width:560px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:10px 16px}
 .submit .missing{font-size:13px;color:var(--muted);flex:1}
-nav{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+nav{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
 nav button{height:52px;border:0;background:none;color:var(--muted);font:inherit;font-size:14px;cursor:pointer}
 nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inset 0 2px 0 var(--gold)}
 [hidden]{display:none!important}
@@ -141,6 +141,48 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
 .goal button[aria-pressed="true"]{background:var(--good);border-color:var(--good);color:var(--sel-ink);font-weight:700}
 .goal .track{grid-column:1 / 3;height:6px}
 .goal .fill.ok{background:var(--good)}
+
+/* 課程（交易物理學自學進度）：只追蹤同提醒，冇任何交易執行功能 */
+.cohead{margin:6px 0 4px}
+.cohead .pct{display:flex;align-items:baseline;gap:12px}
+.cohead .pct b{font-family:"Noto Serif TC",serif;font-size:44px;line-height:1;font-weight:900;color:var(--gold)}
+.cohead .pct span{font-size:12px;color:var(--muted);line-height:1.5}
+.cohead .track{margin-top:8px}
+.ready{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.ready div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 6px;text-align:center;font-size:12px;color:var(--muted)}
+.ready b{display:block;font-size:20px;line-height:1.2;color:var(--muted)}
+.ready div.ok{border-color:var(--good)}
+.ready div.ok b{color:var(--good)}
+.mod{padding:16px 0;border-top:1px solid var(--line)}
+.mod .mh{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.mod .mh b{font-size:16px;font-weight:700}
+.mod .why{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
+.pill{font-size:11px;padding:2px 8px;border:1px solid var(--line);border-radius:999px;color:var(--muted);white-space:nowrap}
+.pill.reading{color:var(--gold);border-color:var(--gold)}
+.pill.practiced{color:var(--good);border-color:var(--good)}
+.pill.integrated{background:var(--good);border-color:var(--good);color:var(--sel-ink);font-weight:700}
+.mod .track{margin-top:8px}
+.dates{display:grid;gap:6px;margin-top:10px}
+.dates .dr{display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+.dates .dr input{min-width:0;width:100%}
+.dates .dr.over{color:var(--bad);font-weight:700}
+.dates .dr button{min-height:40px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:13px;cursor:pointer}
+.mod h3{margin:16px 0 0}
+.ex{padding:10px 0;border-bottom:1px dashed var(--line)}
+.ex .xh{display:grid;grid-template-columns:26px 1fr;gap:8px;align-items:start;font-size:14px;line-height:1.45}
+.ex .xh input{width:22px;height:22px;margin:0;accent-color:var(--gold)}
+.ex .xh.done span{color:var(--muted);text-decoration:line-through}
+.ex textarea{min-height:44px;margin-top:6px}
+.outcome{margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.outcome .oh{font-size:12px;font-weight:700;color:var(--muted)}
+.outcome .od{font-size:14px;margin:6px 0 8px;line-height:1.5}
+.outcome textarea{min-height:56px}
+.outcome .orow{display:grid;grid-template-columns:1fr auto;gap:6px;margin-top:8px}
+.outcome .orow.one{grid-template-columns:1fr}
+.outcome .orow input{min-width:0}
+.outcome .orow select{min-height:44px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px}
+.outcome .orow button{min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-size:14px;cursor:pointer}
+.outcome a{color:var(--gold);font-size:13px;word-break:break-all}
 .kcalnote{font-size:13px;color:var(--muted);margin-top:6px}
 .meal{padding:10px 0}
 .meal+.meal{border-top:1px dashed var(--line)}
@@ -199,6 +241,15 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
     <div id="goals"></div>
   </main>
 
+  <!-- 課程（交易物理學自學進度） -->
+  <main id="tab-course" hidden>
+    <header><h1>課程</h1></header>
+    <p class="muted">交易物理學自學進度：每一堂連住一個交易系統成果。狀態由「練習剔」同「成果狀態」自動推導。</p>
+    <div id="courseoverview"></div>
+    <div id="courselist"></div>
+    <p class="muted" id="coursehint"></p>
+  </main>
+
   <!-- 設定 -->
   <main id="tab-settings" hidden>
     <header><h1>設定</h1></header>
@@ -243,13 +294,14 @@ nav button[aria-current="page"]{color:var(--ink);font-weight:700;box-shadow:inse
     <button type="button" data-tab="log" aria-current="page">紀錄</button>
     <button type="button" data-tab="progress">進度</button>
     <button type="button" data-tab="goals">目標</button>
+    <button type="button" data-tab="course">課程</button>
     <button type="button" data-tab="settings">設定</button>
   </nav>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const APP_VERSION="v16";   // 同 sw.js 嘅 VERSION 一齊改
+const APP_VERSION="v17";   // 同 sw.js 嘅 VERSION 一齊改
 
 /* ================= 欄位定義（改呢度就改到個 form） ================= */
 const TAGS=["突破","心流","面對痛苦","逃避","新人","深度對話","靈感","好玩","攰","圓桌","主動開口","錯過機會","Cyber","Sax","Postman"];
@@ -293,6 +345,94 @@ const GOALS=[
   {tag:"Cyber",label:"Cyber security",need:2,step:"做 1 個 lab／30 分鐘"},
   {tag:"Postman",label:"Postman API",need:2,step:"砌 1 個 request／30 分鐘"}
 ];
+
+/* ================= 課程：交易物理學（只追蹤同提醒，唔會落單） ================= */
+// 4 個模組按「應對跌市」優先次序排。狀態由「練習剔」同「成果狀態」推導，唔會兩邊唔一致。
+// 進度只存喺手機 IndexedDB（kv "course_trading_physics"），唔同步上 laptop、唔入 repo。
+const COURSE_KEY="course_trading_physics";
+const READY_IDS=["L1","L3","L4"];   // 「跌市準備度」只計呢三個成果（L2 係價差工具，唔關生存）
+const MODULES=[
+  {id:"L1",name:"L1 Random walk / √t",targetDays:14,
+   outcome:"按波幅縮放嘅 trim／re-entry 門檻同 stop 距離",
+   why:"最先做：σ√t 係其餘三堂嘅計算基礎，亦直接決定門檻同 stop 距離點樣跟波幅縮放。",
+   exercises:[
+     {id:"l1a",text:"用 60 日 realised daily σ，寫低「揸 t 日嘅 1σ 波幅 ≈ σ√t」同實際價位距離"},
+     {id:"l1b",text:"整 √N 對照表（1／5／10／21 日），同現用固定 % 門檻比較差幾遠"},
+     {id:"l1c",text:"定 stop 距離 = k·σ√持有期（k 自己揀），寫低 AG、GDX 各自嘅數值"},
+     {id:"l1d",text:"定 trim／re-entry 門檻：偏離 ≥X·σ√t trim，回落到 ≤Y·σ√t re-enter"},
+     {id:"l1e",text:"用過去 12 個月真數據 check：會 trim 幾多次、miss 幾多段"}
+   ]},
+  {id:"L3",name:"L3 Fat tails / 冪律",targetDays:14,
+   outcome:"尾部風險報告（尾部指數、歷史最差單日／一週、下跌 X% 時倉位損失表）",
+   why:"第二：大跌市嘅傷害全部喺尾部，要先量化「最壞可以幾壞」同倉位損失上限。",
+   exercises:[
+     {id:"l3a",text:"拉金、銀、AG、GDX 至少 10 年日報酬，計 Hill 尾部指數 α"},
+     {id:"l3b",text:"列歷史最差單日同最差一週（日期、%），同常態分佈預期比較（幾多個 σ）"},
+     {id:"l3c",text:"做「下跌 5／10／20／30% 時倉位損失」表（用現時倉位規模計 $）"},
+     {id:"l3d",text:"寫結論：20% 跌幅下會唔會觸及「唔可以再冒險」嘅資金水平"}
+   ]},
+  {id:"L4",name:"L4 Kelly criterion",targetDays:0,
+   outcome:"倉位大小檢查器（system／discretionary 分開嘅勝率同盈虧比 → Kelly 上限）",
+   why:"第三：倉位大小係跌市存活關鍵，但要有分開標記嘅交易紀錄先算得準。",
+   exercises:[
+     {id:"l4a",text:"整理交易紀錄：每單標 system／discretionary，計勝率 p 同盈虧比 b"},
+     {id:"l4b",text:"計 Kelly f* = p − (1−p)／b，兩組分開"},
+     {id:"l4c",text:"用 half-Kelly 定實際倉位上限，同現時倉位比較"},
+     {id:"l4d",text:"做檢查器（表或 script）：入 p、b、資金 → 出倉位上限"}
+   ]},
+  {id:"L2",name:"L2 Ornstein-Uhlenbeck",targetDays:0,
+   outcome:"價差 half-life（金銀比、AG 對白銀、GDX 對黃金）",
+   why:"最後：mean reversion 係機會型工具，唔影響跌市生存，等前三樣有成果先做。",
+   exercises:[
+     {id:"l2a",text:"拉金銀比、AG／白銀、GDX／黃金嘅 log 價差時間序列（10 年日資料）"},
+     {id:"l2b",text:"對 log 價差做 AR(1) 回歸，估 θ（mean reversion 速度）"},
+     {id:"l2c",text:"計 half-life = ln2／θ，三個價差各一個數，睇邊個最快"},
+     {id:"l2d",text:"對比現用價差參數：持倉期有冇超過 half-life"}
+   ]}
+];
+const OST=[["todo","未開始"],["doing","進行中"],["integrated","已整合"]];
+let COURSE=null;
+function courseDefault(){
+  const plus=n=>{ const d=new Date(); d.setDate(d.getDate()+n); return fmt(d); };
+  const m={};
+  MODULES.forEach(x=>{ m[x.id]={started:"",target:x.targetDays?plus(x.targetDays):"",done:"",ex:{},outcome:{desc:"",status:"todo",link:""}}; });
+  return {v:1,modules:m};
+}
+// 舊資料補回新練習／新模組（唔會覆蓋已有筆記）。用 "target" in s 係因為用戶特登清空目標日期時唔應該再自動填。
+function courseMerge(saved){
+  const base=courseDefault(); if(!saved||!saved.modules) return base;
+  MODULES.forEach(x=>{
+    const s=saved.modules[x.id]||{}, b=base.modules[x.id];
+    base.modules[x.id]={started:s.started||"",target:"target" in s?s.target:b.target,done:s.done||"",
+      ex:(s.ex&&typeof s.ex==="object")?s.ex:{},outcome:Object.assign({},b.outcome,s.outcome||{})};
+  });
+  return {v:1,modules:base.modules};
+}
+async function courseLoad(){
+  if(COURSE) return COURSE;
+  const saved=await KV.get(COURSE_KEY); COURSE=courseMerge(saved);
+  if(!saved) await KV.set(COURSE_KEY,COURSE);   // 第一次開：寫入預設目標日期，之後唔會再飄
+  return COURSE;
+}
+function courseSave(){ if(COURSE) KV.set(COURSE_KEY,COURSE).catch(()=>toast("課程進度儲存唔到")); }
+function modState(x){
+  const s=COURSE.modules[x.id], total=x.exercises.length;
+  const done=x.exercises.filter(e=>s.ex[e.id]&&s.ex[e.id].done).length;
+  const integrated=s.outcome.status==="integrated";
+  let key="todo", label="未開始";
+  if(integrated){ key="integrated"; label="成果已整合"; }
+  else if(done>=total){ key="practiced"; label="練習完成"; }
+  else if(done>0||s.started||s.outcome.status!=="todo"){ key="reading"; label="閱讀中"; }
+  return {s,total,done,integrated,key,label};
+}
+function courseProgress(){
+  let exTotal=0, exDone=0, outDone=0;
+  MODULES.forEach(x=>{ const m=modState(x); exTotal+=m.total; exDone+=m.done; if(m.integrated) outDone++; });
+  const ready=MODULES.filter(x=>READY_IDS.indexOf(x.id)>=0&&modState(x).integrated).length;
+  return {exTotal,exDone,outTotal:MODULES.length,outDone,ready,pct:Math.round((exDone+outDone)/(exTotal+MODULES.length)*100)};
+}
+function daysTo(d){ return d?Math.round((new Date(d+"T00:00:00")-new Date(today()+"T00:00:00"))/86400000):null; }
+
 
 /* ================= IndexedDB ================= */
 let _db;
@@ -618,6 +758,86 @@ async function renderResults(){
   box.innerHTML=html;
 }
 
+/* ================= 課程頁：交易物理學進度 ================= */
+async function renderCourse(){
+  await courseLoad();
+  const p=courseProgress(), box=$("courseoverview"), list=$("courselist");
+  const overdue=MODULES.filter(x=>{ const m=modState(x), d=daysTo(m.s.target); return d!==null&&d<0&&!m.integrated; });
+  let h=`<div class="cohead"><div class="pct"><b>${p.pct}%</b><span>整體進度<br>練習 ${p.exDone}／${p.exTotal}　成果 ${p.outDone}／${p.outTotal}</span></div>
+    <div class="track"><div class="fill" style="width:${p.pct}%"></div></div></div>
+  <div class="stats"><span><b>${p.ready}／${READY_IDS.length}</b>跌市準備度</span><span><b>${p.exTotal-p.exDone}</b>未做練習</span><span><b>${p.outDone}</b>已整合成果</span></div>
+  <div class="ready">${MODULES.filter(x=>READY_IDS.indexOf(x.id)>=0).map(x=>{ const m=modState(x);
+    return `<div class="${m.integrated?"ok":""}"><b>${m.integrated?"✓":"—"}</b>${esc(x.id)} 成果</div>`; }).join("")}</div>`;
+  if(overdue.length) h+=`<div class="alert">超過目標日未整合：${overdue.map(x=>esc(x.id)).join("、")}。做唔完就縮細範圍（例如只做 3 題），唔好原地放棄成堂。</div>`;
+  box.innerHTML=h;
+
+  list.innerHTML=MODULES.map(x=>{
+    const m=modState(x), left=daysTo(m.s.target), late=left!==null&&left<0&&!m.integrated;
+    const row=(label,k,val,btn)=>`<div class="dr${k==="target"&&late?" over":""}"><span>${label}</span>
+      <input type="date" value="${esc(val||"")}" data-date="${k}" data-mod="${x.id}" aria-label="${esc(x.name)} ${label}">${btn||"<span></span>"}</div>`;
+    const mpct=Math.round(((m.done+(m.integrated?1:0))/(m.total+1))*100);
+    return `<section class="mod">
+      <div class="mh"><b>${esc(x.name)}</b><span class="pill ${m.key}">${m.label}</span><span class="muted">練習 ${m.done}／${m.total}</span></div>
+      <div class="why">${esc(x.why)}${left!==null?` · 目標 ${esc(m.s.target)}（${late?`逾期 ${-left} 日`:left===0?"今日到期":`仲有 ${left} 日`}）`:""}</div>
+      <div class="track"><div class="fill" style="width:${mpct}%"></div></div>
+      <div class="dates">
+        ${row("開始","started",m.s.started,`<button type="button" data-today="${x.id}">今日</button>`)}
+        ${row("完成","done",m.s.done,"")}
+        ${row("目標","target",m.s.target,"")}
+      </div>
+      <h3>練習（剔完自動記今日）</h3>
+      ${x.exercises.map(e=>{ const st=m.s.ex[e.id]||{};
+        return `<div class="ex"><label class="xh ${st.done?"done":""}"><input type="checkbox" ${st.done?"checked":""} data-ex="${e.id}" data-mod="${x.id}"><span>${esc(e.text)}</span></label>
+        <textarea placeholder="筆記（可留空）" data-note="${e.id}" data-mod="${x.id}" aria-label="筆記">${esc(st.note||"")}</textarea></div>`; }).join("")}
+      <div class="outcome"><div class="oh">交易成果</div><div class="od">${esc(x.outcome)}</div>
+        <textarea placeholder="實際做咗乜（例如：stop = 2σ√10，AG 大約 9.8%）" data-odesc data-mod="${x.id}" aria-label="成果描述">${esc(m.s.outcome.desc||"")}</textarea>
+        <div class="orow one"><select data-ostatus data-mod="${x.id}" aria-label="成果狀態">${OST.map(([v,t])=>`<option value="${v}"${m.s.outcome.status===v?" selected":""}>${t}</option>`).join("")}</select></div>
+        <div class="orow"><input type="text" placeholder="https://… 或檔案路徑" title="只記錄，唔會自動開啟。file:// 或 C:/ 路徑喺 https 嘅 PWA 開唔到，撳「複製」再喺電腦貼上。" value="${esc(m.s.outcome.link||"")}" data-olink data-mod="${x.id}" aria-label="成果 link"><button type="button" data-copy="${x.id}">複製</button></div>
+        ${/^https?:\/\//i.test(m.s.outcome.link||"")?`<p><a href="${esc(m.s.outcome.link)}" target="_blank" rel="noopener">開啟 link</a></p>`:""}
+      </div></section>`; }).join("");
+
+  wireCourse(list);
+  $("coursehint").textContent=`資料只存喺呢部手機（IndexedDB），唔會同步上 laptop；呢頁冇任何落單或交易執行功能。`;
+}
+
+function wireCourse(list){
+  const mod=id=>COURSE.modules[id];
+  list.querySelectorAll("input[type=checkbox][data-ex]").forEach(el=>el.onchange=()=>{
+    const x=MODULES.find(m=>m.id===el.dataset.mod), s=mod(el.dataset.mod);
+    s.ex[el.dataset.ex]=Object.assign({},s.ex[el.dataset.ex],{done:el.checked});
+    if(el.checked&&!s.started) s.started=today();
+    if(x.exercises.every(e=>s.ex[e.id]&&s.ex[e.id].done)&&!s.done) s.done=today();
+    courseSave(); renderCourse();
+  });
+  list.querySelectorAll("textarea[data-note]").forEach(el=>el.oninput=()=>{
+    const s=mod(el.dataset.mod); s.ex[el.dataset.note]=Object.assign({},s.ex[el.dataset.note],{note:el.value}); courseSave();
+  });
+  list.querySelectorAll("textarea[data-odesc]").forEach(el=>el.oninput=()=>{ mod(el.dataset.mod).outcome.desc=el.value; courseSave(); });
+  list.querySelectorAll("input[type=date][data-date]").forEach(el=>el.onchange=()=>{
+    mod(el.dataset.mod)[el.dataset.date]=el.value||""; courseSave(); renderCourse();
+  });
+  list.querySelectorAll("button[data-today]").forEach(el=>el.onclick=()=>{
+    const s=mod(el.dataset.today);
+    if(s.started){ toast("開始日期已經係 "+s.started); return; }
+    s.started=today(); courseSave(); renderCourse();
+  });
+  list.querySelectorAll("select[data-ostatus]").forEach(el=>el.onchange=()=>{
+    const s=mod(el.dataset.mod); s.outcome.status=el.value;
+    if(el.value==="integrated"){ if(!s.started) s.started=today(); if(!s.done) s.done=today(); }
+    courseSave(); renderCourse();
+  });
+  list.querySelectorAll("input[data-olink]").forEach(el=>{
+    el.oninput=()=>{ mod(el.dataset.mod).outcome.link=el.value; courseSave(); };
+    el.onchange=()=>{ mod(el.dataset.mod).outcome.link=el.value; courseSave(); renderCourse(); };   // render 一次，「開啟 link」先會出現
+  });
+  list.querySelectorAll("button[data-copy]").forEach(el=>el.onclick=async()=>{
+    const v=(mod(el.dataset.copy).outcome.link||"").trim();
+    if(!v){ toast("未填 link"); return; }
+    try{ await navigator.clipboard.writeText(v); toast("已複製 link"); }
+    catch(e){ toast("複製唔到，長按輸入格手動複製"); }
+  });
+}
+
 /* ================= 同步 ================= */
 // 有幾多日紀錄未上到 laptop（updated_at 遲過上次成功同步）
 async function pendingCount(){
@@ -715,15 +935,31 @@ $("importfile").onchange=async e=>{
 
 /* ================= tabs ================= */
 function showTab(t){
-  ["log","progress","goals","settings"].forEach(k=>$("tab-"+k).hidden=k!==t);
+  ["log","progress","goals","course","settings"].forEach(k=>$("tab-"+k).hidden=k!==t);
   document.querySelectorAll("nav button").forEach(b=>{ if(b.dataset.tab===t) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
   $("submitbar").hidden=t!=="log";
   if(t==="progress") renderResults();
   if(t==="goals") renderGoals();
+  if(t==="course") renderCourse();
   if(t==="settings") renderSyncStatus();
   window.scrollTo({top:0});
 }
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+
+/* ================= 課程 self-check（唔會寫入儲存） ================= */
+(()=>{ const real=COURSE; COURSE=courseDefault();
+  const x=MODULES[0], s=COURSE.modules[x.id];
+  x.exercises.forEach(e=>{ s.ex[e.id]={done:true,note:""}; });
+  const a=courseProgress();
+  console.assert(a.exDone===x.exercises.length&&a.outDone===0&&a.ready===0&&modState(x).key==="practiced","course self-check A",a);
+  s.outcome.status="integrated";
+  const b=courseProgress();
+  console.assert(b.ready===1&&b.outDone===1&&modState(x).key==="integrated"&&b.exDone===a.exDone,"course self-check B",b);
+  const d=courseDefault();
+  console.assert(daysTo(d.modules.L1.target)===14&&d.modules.L2.target==="","course self-check C",d.modules.L1);
+  const m=courseMerge({modules:{L1:{target:"",ex:{l1a:{done:true,note:"x"}}}}});
+  console.assert(m.modules.L1.target===""&&m.modules.L1.ex.l1a.note==="x"&&!!m.modules.L3,"course self-check D",m.modules.L1);
+  COURSE=real; })();
 
 /* ================= 啟動 ================= */
 (async()=>{
@@ -733,6 +969,7 @@ document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>showTab(b.datas
     const migrated=await migrateAll();
     if(migrated) toast(`已將 ${migrated} 日舊紀錄轉做新選項，記得同步`);
     await loadDay(today()); await loadHistory();
+    try{ await courseLoad(); }catch(e){}   // 課程進度（存喺 kv，唔同步上 laptop）
     $("server").value=(await KV.get("server"))||""; $("token").value=(await KV.get("token"))||"";
     kcalTarget=(await KV.get("kcal_target"))||null; $("kcaltarget").value=kcalTarget||""; renderForm();
     $("dskey").value=(await KV.get("deepseek_key"))||"";
